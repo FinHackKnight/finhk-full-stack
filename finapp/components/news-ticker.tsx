@@ -10,8 +10,14 @@ function getRelativeTime(dateString: string): string {
   const now = new Date();
   const diffInSeconds = Math.floor((now.getTime() - date.getTime()) / 1000);
 
+  // Handle negative time (future dates or parsing errors)
+  if (diffInSeconds < 0) {
+    return 'Just now';
+  }
+
   if (diffInSeconds < 60) {
-    return diffInSeconds === 1 ? '1 second ago' : `${diffInSeconds} seconds ago`;
+    return diffInSeconds === 0 ? 'Just now' : 
+           diffInSeconds === 1 ? '1 second ago' : `${diffInSeconds} seconds ago`;
   }
   
   const minutes = Math.floor(diffInSeconds / 60);
