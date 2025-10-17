@@ -189,9 +189,26 @@ export function MapView() {
                           onClick={() => window.open(newsItem.url, '_blank')}
                         >
                           <div className="flex gap-3">
-                            <div className="flex-shrink-0 w-8 h-8 rounded-full bg-primary/10 flex items-center justify-center">
-                              {getCategoryIcon(newsItem.category)}
-                            </div>
+                            {newsItem.image_url ? (
+                              <div className="flex-shrink-0 w-12 h-12 rounded-lg overflow-hidden bg-muted">
+                                <img 
+                                  src={newsItem.image_url} 
+                                  alt={newsItem.title}
+                                  className="w-full h-full object-cover"
+                                  onError={(e) => {
+                                    e.currentTarget.style.display = 'none';
+                                    e.currentTarget.nextElementSibling?.classList.remove('hidden');
+                                  }}
+                                />
+                                <div className="hidden w-full h-full bg-primary/10 flex items-center justify-center">
+                                  {getCategoryIcon(newsItem.category)}
+                                </div>
+                              </div>
+                            ) : (
+                              <div className="flex-shrink-0 w-12 h-12 rounded-lg bg-primary/10 flex items-center justify-center">
+                                {getCategoryIcon(newsItem.category)}
+                              </div>
+                            )}
                             <div className="flex-1 min-w-0">
                               <div className="flex items-start justify-between gap-2 mb-1">
                                 <h4 className="text-sm font-medium leading-tight line-clamp-2 group-hover:text-primary transition-colors">
