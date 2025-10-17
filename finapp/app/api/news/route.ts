@@ -1,88 +1,49 @@
 import { NextRequest, NextResponse } from 'next/server';
+import { newsAggregator, NewsItem } from '@/lib/news-aggregation';
 
-const STOCK_DATA_API_KEY = process.env.STOCK_DATA_API_KEY;
-const STOCK_DATA_BASE_URL = process.env.STOCK_DATA_BASE_URL || 'https://api.stockdata.org/v1';
-
-// GET ALL LATEST NEWS
+// GET ALL LATEST NEWS using RSS2JSON, Reddit, and Hacker News
 export async function GET(request: NextRequest) {
   try {
-    if (!STOCK_DATA_API_KEY) {
-      return NextResponse.json(
-        { error: 'Stock Data API key is not configured' },
-        { status: 500 }
-      );
-    }
-
     const { searchParams } = new URL(request.url);
     
     // Extract query parameters
-    const limit = searchParams.get('limit') || '50';
-    const offset = searchParams.get('offset') || '0';
-    const symbols = searchParams.get('symbols');
-    const language = searchParams.get('language') || 'en';
-    const sentiment = searchParams.get('sentiment');
-    const dateFrom = searchParams.get('date_from');
-    const dateTo = searchParams.get('date_to');
+    const limit = parseInt(searchParams.get('limit') || '50');
+    const offset = parseInt(searchParams.get('offset') || '0');
+    const category = searchParams.get('category');
+    const sources = searchParams.get('sources')?.split(',') as ('rss' | 'reddit' | 'hackernews')[] || ['rss', 'reddit', 'hackernews'];
+    
+    console.log('Fetching news with params:', { limit, offset, category, sources });
 
-    // Build API URL with parameters
-    const apiUrl = new URL(`${STOCK_DATA_BASE_URL}/news/all`);
-    apiUrl.searchParams.append('api_token', STOCK_DATA_API_KEY);
-    apiUrl.searchParams.append('limit', limit);
-    apiUrl.searchParams.append('offset', offset);
-    apiUrl.searchParams.append('language', language);
-
-    // Add optional parameters if provided
-    if (symbols) {
-      apiUrl.searchParams.append('symbols', symbols);
-    }
-    if (sentiment) {
-      apiUrl.searchParams.append('sentiment', sentiment);
-    }
-    if (dateFrom) {
-      apiUrl.searchParams.append('date_from', dateFrom);
-    }
-    if (dateTo) {
-      apiUrl.searchParams.append('date_to', dateTo);
-    }
-
-    // Fetch news from Stock Data API
-    const response = await fetch(apiUrl.toString(), {
-      method: 'GET',
-      headers: {
-        'Accept': 'application/json',
-        'User-Agent': 'FinApp/1.0'
-      }
+    // Fetch news from aggregation service
+    const allNews = await newsAggregator.aggregateNews({
+      limit: limit + offset, // Get more items to account for offset
+      sources,
+      category: category || undefined
     });
 
-    if (!response.ok) {
-      const errorText = await response.text();
-      console.error(`Stock Data API error: ${response.status} ${response.statusText}`, errorText);
-      
-      return NextResponse.json(
-        { 
-          error: 'Failed to fetch news from Stock Data API',
-          status: response.status,
-          statusText: response.statusText
-        },
-        { status: response.status }
-      );
-    }
+    // Apply pagination
+    const paginatedNews = allNews.slice(offset, offset + limit);
 
-    const newsData = await response.json();
+    // Filter by category if specified
+    const filteredNews = category 
+      ? paginatedNews.filter(item => item.category.toLowerCase().includes(category.toLowerCase()))
+      : paginatedNews;
 
     return NextResponse.json({
       success: true,
-      data: newsData.data || newsData,
-      meta: newsData.meta || {
-        found: newsData.data?.length || 0,
-        returned: newsData.data?.length || 0,
-        limit: parseInt(limit),
-        offset: parseInt(offset)
+      data: filteredNews,
+      meta: {
+        found: allNews.length,
+        returned: filteredNews.length,
+        limit,
+        offset,
+        sources: sources,
+        category: category || 'all'
       }
     });
 
   } catch (error: any) {
-    console.error('News API error:', error);
+    console.error('News aggregation API error:', error);
     
     return NextResponse.json(
       { 
@@ -97,82 +58,55 @@ export async function GET(request: NextRequest) {
 // POST method for more complex news queries
 export async function POST(request: NextRequest) {
   try {
-    if (!STOCK_DATA_API_KEY) {
-      return NextResponse.json(
-        { error: 'Stock Data API key is not configured' },
-        { status: 500 }
-      );
-    }
-
     const body = await request.json();
     const {
       limit = 50,
       offset = 0,
-      symbols,
-      language = 'en',
-      sentiment,
-      date_from,
-      date_to
+      sources = ['rss', 'reddit', 'hackernews'],
+      category,
+      symbols
     } = body;
 
-    // Build API URL
-    const apiUrl = new URL(`${STOCK_DATA_BASE_URL}/news/all`);
-    apiUrl.searchParams.append('api_token', STOCK_DATA_API_KEY);
-    apiUrl.searchParams.append('limit', limit.toString());
-    apiUrl.searchParams.append('offset', offset.toString());
-    apiUrl.searchParams.append('language', language);
+    console.log('POST: Fetching news with body:', { limit, offset, sources, category, symbols });
 
-    // Add optional parameters
-    if (symbols && Array.isArray(symbols)) {
-      apiUrl.searchParams.append('symbols', symbols.join(','));
-    }
-    if (sentiment) {
-      apiUrl.searchParams.append('sentiment', sentiment);
-    }
-    if (date_from) {
-      apiUrl.searchParams.append('date_from', date_from);
-    }
-    if (date_to) {
-      apiUrl.searchParams.append('date_to', date_to);
-    }
-
-    const response = await fetch(apiUrl.toString(), {
-      method: 'GET',
-      headers: {
-        'Accept': 'application/json',
-        'User-Agent': 'FinApp/1.0'
-      }
+    // Fetch news from aggregation service
+    const allNews = await newsAggregator.aggregateNews({
+      limit: limit + offset,
+      sources: sources as ('rss' | 'reddit' | 'hackernews')[],
+      category
     });
 
-    if (!response.ok) {
-      const errorText = await response.text();
-      console.error(`Stock Data API error: ${response.status} ${response.statusText}`, errorText);
-      
-      return NextResponse.json(
-        { 
-          error: 'Failed to fetch news from Stock Data API',
-          status: response.status,
-          statusText: response.statusText
-        },
-        { status: response.status }
+    // Apply pagination
+    const paginatedNews = allNews.slice(offset, offset + limit);
+
+    // Filter by symbols if specified
+    let filteredNews = paginatedNews;
+    if (symbols && Array.isArray(symbols) && symbols.length > 0) {
+      filteredNews = paginatedNews.filter(item => 
+        item.symbols?.some(symbol => 
+          symbols.some(requestedSymbol => 
+            symbol.toLowerCase().includes(requestedSymbol.toLowerCase())
+          )
+        )
       );
     }
 
-    const newsData = await response.json();
-
     return NextResponse.json({
       success: true,
-      data: newsData.data || newsData,
-      meta: newsData.meta || {
-        found: newsData.data?.length || 0,
-        returned: newsData.data?.length || 0,
+      data: filteredNews,
+      meta: {
+        found: allNews.length,
+        returned: filteredNews.length,
         limit,
-        offset
+        offset,
+        sources,
+        category: category || 'all',
+        symbols_filter: symbols || null
       }
     });
 
   } catch (error: any) {
-    console.error('News API POST error:', error);
+    console.error('News aggregation POST error:', error);
     
     return NextResponse.json(
       { 

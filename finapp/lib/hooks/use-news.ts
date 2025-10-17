@@ -1,18 +1,7 @@
 'use client';
 
 import { useState, useEffect } from 'react';
-
-interface NewsItem {
-  uuid: string;
-  title: string;
-  description: string;
-  url: string;
-  published_at: string;
-  source: string;
-  symbols?: string[];
-  sentiment?: string;
-  image_url?: string;
-}
+import type { NewsItem } from '@/lib/news-aggregation';
 
 interface NewsResponse {
   success: boolean;
@@ -42,14 +31,7 @@ export function useNews(limit: number = 10): UseNewsReturn {
       setLoading(true);
       setError(null);
 
-      // Try the real API first
-      let response = await fetch(`/api/news?limit=${limit}&language=en`);
-      
-      // If unauthorized or API key issues, fall back to mock data
-      if (response.status === 401 || response.status === 500) {
-        console.warn('Real API failed, falling back to mock data');
-        response = await fetch(`/api/news/mock?limit=${limit}`);
-      }
+      const response = await fetch(`/api/news?limit=${limit}&language=en`);
       
       if (!response.ok) {
         throw new Error(`Failed to fetch news: ${response.statusText}`);
