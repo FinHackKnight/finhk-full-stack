@@ -121,10 +121,6 @@ export function AIAnalysis({ symbol, stockData }: AIAnalysisProps) {
 
   return (
     <div className="flex flex-col h-full">
-      <div className="flex items-center gap-2 mb-4">
-        <Bot className="w-4 h-4 text-primary" />
-        <span className="text-sm font-semibold">AI Stock Analysis</span>
-      </div>
 
       <div className="flex-1 flex flex-col">
         {!aiResponse && !isAnalyzing && (
@@ -212,7 +208,8 @@ export function AIAnalysis({ symbol, stockData }: AIAnalysisProps) {
           <Button 
             onClick={analyzeStock}
             size="sm"
-            className="w-full"
+            variant="outline"
+            className="w-full bg-muted/20 border-border/50 hover:bg-muted/30 text-foreground"
             disabled={!stockData}
           >
             <Bot className="w-3 h-3 mr-2" />
@@ -225,7 +222,7 @@ export function AIAnalysis({ symbol, stockData }: AIAnalysisProps) {
             onClick={analyzeStock}
             size="sm"
             variant="outline"
-            className="w-full"
+            className="w-full bg-muted/20 border-border/50 hover:bg-muted/30 text-foreground"
           >
             Try Again
           </Button>
@@ -236,7 +233,7 @@ export function AIAnalysis({ symbol, stockData }: AIAnalysisProps) {
             onClick={analyzeStock}
             size="sm"
             variant="outline"
-            className="w-full"
+            className="w-full bg-muted/20 border-border/50 hover:bg-muted/30 text-foreground"
             disabled={isAnalyzing}
           >
             <Sparkles className="w-3 h-3 mr-2" />
