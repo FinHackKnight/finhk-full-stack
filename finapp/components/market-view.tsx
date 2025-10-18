@@ -42,7 +42,9 @@ export function MarketView() {
 
   async function handleFetch(symbol: string) {
     try {
-      const res = await fetch(`/api/stocks?symbol=${symbol}&interval=daily`);
+      const res = await fetch(
+        `/api/stocks/quote?symbol=${symbol}&interval=weekly`
+      );
       if (!res.ok) {
         throw new Error(`HTTP ${res.status}: ${res.statusText}`);
       }
@@ -68,7 +70,7 @@ export function MarketView() {
   return (
     <div className="h-full w-full overflow-auto bg-gradient-to-b from-background to-muted/20">
       <button
-        onClick={() => handleFetch("AAPL")}
+        onClick={() => handleFetch("NVDA")}
         className="px-4 py-2 bg-green-500 text-white rounded cursor-pointer"
       >
         Test Click
@@ -84,7 +86,7 @@ export function MarketView() {
         {data && data.length > 0 && (
           <div className="grid grid-cols-1 lg:grid-cols-3 gap-4">
             <MarketChart
-              title="S&P 500"
+              title="NVIDIA"
               data={data}
               change={45.23}
               changePercent={1.02}
