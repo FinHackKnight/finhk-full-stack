@@ -1,6 +1,6 @@
 "use client";
 
-import { useRef, useState, useMemo, Effect} from "react"
+import { useRef, useState, useMemo, useEffect} from "react"
 import { Canvas, useFrame, useLoader } from "@react-three/fiber"
 import { OrbitControls } from "@react-three/drei"
 import { TextureLoader } from "three"
@@ -54,25 +54,6 @@ function LocationPin({
   );
   const color = impactColors[event.impactLevel];
 
-  const pinGeometry = useMemo(() => {
-    const shape = new THREE.Shape();
-    shape.moveTo(0, 0);
-    shape.bezierCurveTo(0, -0.05, 0.05, -0.08, 0.05, -0.12);
-    shape.bezierCurveTo(0.05, -0.16, 0, -0.2, 0, -0.2);
-    shape.bezierCurveTo(0, -0.2, -0.05, -0.16, -0.05, -0.12);
-    shape.bezierCurveTo(-0.05, -0.08, 0, -0.05, 0, 0);
-
-    const extrudeSettings = {
-      depth: 0.02,
-      bevelEnabled: true,
-      bevelThickness: 0.005,
-      bevelSize: 0.005,
-      bevelSegments: 3,
-    };
-
-    return new THREE.ExtrudeGeometry(shape, extrudeSettings);
-  }, []);
-
   useFrame(() => {
     if (groupRef.current) {
       groupRef.current.lookAt(0, 0, 0);
@@ -110,38 +91,63 @@ function LocationPin({
     >
       {/* Pin base (stem) */}
       <mesh position={[0, 0.08, 0]} rotation={[Math.PI / 2, 0, 0]}>
-        <cylinderGeometry args={[0.015, 0.015, 0.15, 8]} />
+        <cylinderGeometry args={[0.02, 0.02, 0.2, 8]} />
         <meshStandardMaterial
           color={color}
           metalness={0.6}
           roughness={0.4}
         />
       </mesh>
-      <mesh position={[0, -0.1, 0.02]}>
-        <sphereGeometry args={[0.02, 16, 16]} />
-        <meshStandardMaterial
-          color="#ffffff"
-          emissive="#ffffff"
-          emissiveIntensity={0.5}
-        />
-      </mesh>
-      {isHighlighted && (
-        <>
-          <mesh ref={glowRef} position={[0, -0.1, 0]}>
-            <sphereGeometry args={[0.08, 16, 16]} />
-            <meshBasicMaterial color={color} transparent opacity={0.3} />
-          </mesh>
-          <mesh position={[0, -0.1, 0]}>
-            <ringGeometry args={[0.08, 0.12, 32]} />
-            <meshBasicMaterial
-              color={color}
-              transparent
-              opacity={0.2}
-              side={THREE.DoubleSide}
-            />
-          </mesh>
-        </>
-      )}
+
+      {/* Pin head */}
+      <group position={[0, 0.2, 0]}>
+        {/* Main sphere */}
+        <mesh>
+          <sphereGeometry args={[0.06, 16, 16]} />
+          <meshStandardMaterial
+            color={color}
+            emissive={color}
+            emissiveIntensity={isHighlighted ? 0.6 : 0.2}
+            metalness={0.5}
+            roughness={0.3}
+          />
+        </mesh>
+
+        {/* Inner glow */}
+        <mesh scale={0.8}>
+          <sphereGeometry args={[0.06, 16, 16]} />
+          <meshBasicMaterial
+            color="#ffffff"
+            transparent
+            opacity={isHighlighted ? 0.4 : 0.2}
+          />
+        </mesh>
+
+        {/* Outer glow and effects for highlighted state */}
+        {isHighlighted && (
+          <>
+            <mesh ref={glowRef}>
+              <sphereGeometry args={[0.09, 16, 16]} />
+              <meshBasicMaterial
+                color={color}
+                transparent
+                opacity={0.3}
+                blending={THREE.AdditiveBlending}
+              />
+            </mesh>
+            <mesh>
+              <ringGeometry args={[0.1, 0.13, 32]} />
+              <meshBasicMaterial
+                color={color}
+                transparent
+                opacity={0.2}
+                side={THREE.DoubleSide}
+                blending={THREE.AdditiveBlending}
+              />
+            </mesh>
+          </>
+        )}
+      </group>
     </group>
   );
 }
@@ -158,87 +164,13 @@ function RealisticGlobe({
   onEventClick: (event: EventWithMarkets) => void;
 }) {
   const groupRef = useRef<THREE.Group>(null);
+  const meshRef = useRef<THREE.Mesh>(null);
   const cloudsRef = useRef<THREE.Mesh>(null);
 
-  useFrame(() => {
-    if (groupRef.current) {
-      groupRef.current.rotation.y += 0.0003;
-    }
-    if (cloudsRef.current) {
-      cloudsRef.current.rotation.y += 0.0001;
-    }
-  });
+  // Load textures
+  const earthTexture = useLoader(TextureLoader, "/assets/3d/texture_earth.jpg");
 
-  const [earthTexture, setEarthTexture] = useState<THREE.Texture | null>(null);
-  const [bumpTexture, setBumpTexture] = useState<THREE.Texture | null>(null);
-  const [specularTexture, setSpecularTexture] = useState<THREE.Texture | null>(
-    null
-  );
-
-  useEffect(() => {
-    let mounted = true;
-    const loader = new THREE.TextureLoader();
-
-    loader.load(
-      "/photo-realistic-earth-satellite-view-natural-earth.jpg",
-      (tex) => {
-        if (!mounted) return;
-        try {
-          // colorSpace may not exist on older three types — guard it
-          // @ts-ignore
-          tex.colorSpace = THREE.SRGBColorSpace;
-        } catch {}
-        tex.anisotropy = rendererCapabilitiesAnisotropy();
-        setEarthTexture(tex);
-      },
-      undefined,
-      (err) => {
-        console.warn("Could not load earth texture:", err);
-      }
-    );
-
-    loader.load(
-      "/earth-terrain-elevation-bump-map-grayscale-topogra.jpg",
-      (tex) => {
-        if (!mounted) return;
-        tex.anisotropy = rendererCapabilitiesAnisotropy();
-        setBumpTexture(tex);
-      },
-      undefined,
-      (err) => {
-        console.warn("Could not load bump texture:", err);
-      }
-    );
-
-    loader.load(
-      "/earth-ocean-water-specular-map-white-oceans-black-.jpg",
-      (tex) => {
-        if (!mounted) return;
-        tex.anisotropy = rendererCapabilitiesAnisotropy();
-        setSpecularTexture(tex);
-      },
-      undefined,
-      (err) => {
-        console.warn("Could not load specular texture:", err);
-      }
-    );
-
-    return () => {
-      mounted = false;
-    };
-  }, []);
-
-  // helper to avoid accessing renderer directly; provide a conservative default
-  function rendererCapabilitiesAnisotropy() {
-    try {
-      // attempt to read maxAnisotropy from a temporary renderer if available
-      // fall back to a reasonable default
-      return 16;
-    } catch {
-      return 1;
-    }
-  }
-
+  // Create procedural cloud texture
   const cloudTexture = useMemo(() => {
     if (typeof window === "undefined") return null;
 
@@ -266,12 +198,19 @@ function RealisticGlobe({
     return new THREE.CanvasTexture(canvas);
   }, []);
 
+  // Rotate the Earth and clouds
+  useFrame((state, delta) => {
+    if (groupRef.current && !hoveredEventId) {
+      groupRef.current.rotation.y += delta * 0.1;
+    }
+    if (cloudsRef.current && !hoveredEventId) {
+      cloudsRef.current.rotation.y += delta * 0.15;
+    }
+  });
+
   return (
-    <group 
-      ref={groupRef}
-      onPointerEnter={() => setIsHovered(true)}
-      onPointerLeave={() => setIsHovered(false)}
-    >
+    <group ref={groupRef}>
+      {/* Earth sphere */}
       <mesh ref={meshRef}>
         <sphereGeometry args={[2.08, 64, 64]} />
         <meshStandardMaterial
@@ -282,24 +221,26 @@ function RealisticGlobe({
       </mesh>
 
       {/* Cloud layer */}
-      <mesh ref={cloudsRef} scale={2.015}>
-        <sphereGeometry args={[2, 64, 64]} />
+      <mesh ref={cloudsRef} scale={1.02}>
+        <sphereGeometry args={[2.08, 32, 32]} />
         <meshStandardMaterial
           map={cloudTexture || undefined}
           transparent
-          opacity={0.4}
+          opacity={0.35}
           depthWrite={false}
+          blending={THREE.AdditiveBlending}
         />
       </mesh>
 
       {/* Atmospheric glow */}
-      <mesh scale={2.15}>
-        <sphereGeometry args={[2, 64, 64]} />
+      <mesh scale={1.1}>
+        <sphereGeometry args={[2.08, 64, 64]} />
         <meshBasicMaterial
           color="#4a90e2"
           transparent
           opacity={0.1}
           side={THREE.BackSide}
+          blending={THREE.AdditiveBlending}
         />
       </mesh>
 
