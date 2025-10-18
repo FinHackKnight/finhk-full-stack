@@ -125,9 +125,6 @@ export function AIAnalysis({ symbol, stockData }: AIAnalysisProps) {
       <div className="flex-1 flex flex-col">
         {!aiResponse && !isAnalyzing && (
           <div className="flex-1 flex flex-col justify-center text-center p-6">
-            <div className="w-16 h-16 mx-auto mb-4 rounded-full bg-gradient-to-br from-purple-500/20 to-pink-500/20 flex items-center justify-center">
-              <Sparkles className="w-8 h-8 text-purple-500" />
-            </div>
             <p className="text-sm text-muted-foreground mb-2 font-medium">
               Get AI-powered analysis for {symbol}
             </p>

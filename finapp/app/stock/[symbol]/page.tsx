@@ -186,8 +186,8 @@ export default function StockProfilePage() {
             {/* Overview Section */}
             <div className="space-y-6">
               <div className="flex items-center gap-3 mb-2">
-                <div className="w-8 h-8 rounded-lg bg-gradient-to-br from-blue-500 to-purple-600 flex items-center justify-center">
-                  <BarChart3 className="w-4 h-4 text-white" />
+                <div className="w-8 h-8 rounded-lg bg-black dark:bg-white flex items-center justify-center">
+                  <BarChart3 className="w-4 h-4 text-white dark:text-black" />
                 </div>
                 <h2 className="text-2xl font-bold bg-gradient-to-r from-foreground to-muted-foreground bg-clip-text text-transparent">Overview</h2>
               </div>
@@ -358,8 +358,8 @@ export default function StockProfilePage() {
         <div className="w-1/2 bg-card/30 backdrop-blur-sm flex flex-col">
           <div className="p-6 flex flex-col h-full">
             <div className="flex items-center gap-3 mb-6">
-              <div className="w-8 h-8 rounded-lg bg-gradient-to-br from-purple-500 to-pink-600 flex items-center justify-center">
-                <Bot className="w-4 h-4 text-white" />
+              <div className="w-8 h-8 rounded-lg bg-black dark:bg-white flex items-center justify-center">
+                <Bot className="w-4 h-4 text-white dark:text-black" />
               </div>
               <h2 className="text-xl font-bold bg-gradient-to-r from-foreground to-muted-foreground bg-clip-text text-transparent">AI Analysis</h2>
             </div>
