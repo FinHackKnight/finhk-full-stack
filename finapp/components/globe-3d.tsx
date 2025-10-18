@@ -1,10 +1,11 @@
 "use client";
 
-import { useRef, useMemo, useState, useEffect } from "react";
-import { Canvas, useFrame } from "@react-three/fiber";
-import { OrbitControls } from "@react-three/drei";
-import * as THREE from "three";
-import type { EventWithMarkets } from "@/lib/mock-data";
+import { useRef, useState, useMemo, Effect} from "react"
+import { Canvas, useFrame, useLoader } from "@react-three/fiber"
+import { OrbitControls } from "@react-three/drei"
+import { TextureLoader } from "three"
+import * as THREE from "three"
+import type { EventWithMarkets } from "@/lib/mock-data"
 
 interface LocationPinProps {
   event: EventWithMarkets;
@@ -100,19 +101,20 @@ function LocationPin({
   };
 
   return (
-    <group ref={groupRef} position={position}>
-      <mesh
-        geometry={pinGeometry}
-        onPointerOver={handlePointerOver}
-        onPointerOut={handlePointerOut}
-        onClick={handleClick}
-      >
+    <group 
+      ref={groupRef} 
+      position={position}
+      onPointerOver={handlePointerOver}
+      onPointerOut={handlePointerOut}
+      onClick={handleClick}
+    >
+      {/* Pin base (stem) */}
+      <mesh position={[0, 0.08, 0]} rotation={[Math.PI / 2, 0, 0]}>
+        <cylinderGeometry args={[0.015, 0.015, 0.15, 8]} />
         <meshStandardMaterial
           color={color}
-          emissive={color}
-          emissiveIntensity={isHighlighted ? 0.5 : 0.2}
-          metalness={0.8}
-          roughness={0.2}
+          metalness={0.6}
+          roughness={0.4}
         />
       </mesh>
       <mesh position={[0, -0.1, 0.02]}>
@@ -265,17 +267,17 @@ function RealisticGlobe({
   }, []);
 
   return (
-    <group ref={groupRef}>
-      {/* Main Earth sphere */}
-      <mesh>
-        <sphereGeometry args={[2, 128, 128]} />
-        <meshPhongMaterial
+    <group 
+      ref={groupRef}
+      onPointerEnter={() => setIsHovered(true)}
+      onPointerLeave={() => setIsHovered(false)}
+    >
+      <mesh ref={meshRef}>
+        <sphereGeometry args={[2.08, 64, 64]} />
+        <meshStandardMaterial
           map={earthTexture}
-          bumpMap={bumpTexture}
-          bumpScale={0.05}
-          specularMap={specularTexture}
-          specular={new THREE.Color(0x333333)}
-          shininess={15}
+          metalness={0.1}
+          roughness={0.8}
         />
       </mesh>
 
@@ -329,7 +331,7 @@ export function Globe3D({
 }: Globe3DProps) {
   return (
     <div className="w-full h-full">
-      <Canvas camera={{ position: [0, 0, 5], fov: 45 }}>
+      <Canvas camera={{ position: [0, 0, 3], fov: 45 }}>
         <ambientLight intensity={0.3} />
         <directionalLight
           position={[5, 3, 5]}
@@ -346,12 +348,11 @@ export function Globe3D({
         <OrbitControls
           enableZoom={true}
           enablePan={false}
-          minDistance={3}
-          maxDistance={8}
-          autoRotate={false}
-          rotateSpeed={0.5}
-          dampingFactor={0.05}
-          enableDamping
+          minDistance={2}
+          maxDistance={10}
+          autoRotate={!hoveredEventId}
+          autoRotateSpeed={0.5}
+          enableRotate={!hoveredEventId}
         />
       </Canvas>
     </div>

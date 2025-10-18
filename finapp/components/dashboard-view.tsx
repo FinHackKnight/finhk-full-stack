@@ -4,6 +4,7 @@ import { StatsOverview } from "@/components/stats-overview"
 import { ActivityFeed } from "@/components/activity-feed"
 import { MarketChart } from "@/components/market-chart"
 import { EventImpactList } from "@/components/event-impact-list"
+import { GeminiChat } from "@/components/gemini-chat"
 
 // Generate sample data
 const generateData = (base: number, volatility: number, points = 24) => {
@@ -47,8 +48,13 @@ export function DashboardView() {
           </div>
         </div>
 
-        <div>
-          <EventImpactList />
+        <div className="grid grid-cols-1 xl:grid-cols-2 gap-6">
+          <div>
+            <EventImpactList />
+          </div>
+          <div>
+            <GeminiChat />
+          </div>
         </div>
       </div>
     </div>
