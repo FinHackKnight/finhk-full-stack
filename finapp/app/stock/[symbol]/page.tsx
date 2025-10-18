@@ -2,11 +2,12 @@
 
 import React, { useState, useEffect } from "react"
 import { useParams, useRouter } from "next/navigation"
-import { ArrowLeft, TrendingUp, TrendingDown, BarChart3, DollarSign, Activity, Globe, ExternalLink, Calendar, Volume, Target } from "lucide-react"
+import { ArrowLeft, TrendingUp, TrendingDown, BarChart3, DollarSign, Activity, Globe, ExternalLink, Calendar, Volume, Target, Bot, Loader2 } from "lucide-react"
 import { Card } from "@/components/ui/card"
 import { Badge } from "@/components/ui/badge"
 import { Button } from "@/components/ui/button"
 import { ScrollArea } from "@/components/ui/scroll-area"
+import { generateContent } from "@/lib/gemini"
 
 interface StockData {
   symbol: string
@@ -43,6 +44,8 @@ export default function StockProfilePage() {
   const [stockData, setStockData] = useState<StockData | null>(null)
   const [stockNews, setStockNews] = useState<StockNews[]>([])
   const [loading, setLoading] = useState(true)
+  const [aiAnalysis, setAiAnalysis] = useState<string>("")
+  const [aiLoading, setAiLoading] = useState(false)
 
   useEffect(() => {
     if (symbol) {
@@ -75,6 +78,44 @@ export default function StockProfilePage() {
       }
     } catch (error) {
       console.error("Failed to fetch stock news:", error)
+    }
+  }
+
+  const generateAiAnalysis = async () => {
+    if (!stockData || !stockNews.length) return
+    
+    setAiLoading(true)
+    try {
+      const prompt = `Analyze the stock ${stockData.symbol} (${stockData.name}) with the following data:
+
+Stock Information:
+- Current Price: $${stockData.price}
+- Change: ${stockData.changePercent > 0 ? '+' : ''}${stockData.changePercent}%
+- Market Cap: $${formatNumber(stockData.marketCap)}
+- P/E Ratio: ${stockData.pe}
+- Sector: ${stockData.sector}
+- Industry: ${stockData.industry}
+- Volume: ${formatNumber(stockData.volume)}
+
+Recent News Headlines:
+${stockNews.slice(0, 5).map(news => `- ${news.title} (${news.sentiment} sentiment)`).join('\n')}
+
+Please provide a comprehensive AI analysis including:
+1. Technical analysis based on current metrics
+2. Fundamental analysis considering sector and industry
+3. News sentiment impact assessment
+4. Risk factors and opportunities
+5. Short-term and long-term outlook
+
+Keep the analysis concise but informative, suitable for investors.`
+
+      const analysis = await generateContent(prompt)
+      setAiAnalysis(analysis)
+    } catch (error) {
+      console.error("Failed to generate AI analysis:", error)
+      setAiAnalysis("Unable to generate AI analysis at this time. Please try again later.")
+    } finally {
+      setAiLoading(false)
     }
   }
 
@@ -321,21 +362,50 @@ export default function StockProfilePage() {
         <div className="w-1/3 bg-card/30 backdrop-blur-sm flex flex-col">
           <ScrollArea className="flex-1">
             <div className="p-4 space-y-6">
-              <h2 className="text-xl font-semibold">Analysis</h2>
+              <h2 className="text-xl font-semibold">AI Analysis</h2>
               
               <div className="p-4 rounded-lg bg-muted/20 border border-border/50">
-                <h3 className="text-sm font-semibold mb-3">Technical Analysis</h3>
-                <div className="space-y-3">
-                  <div className="text-center p-3 bg-muted/30 rounded-lg">
-                    <BarChart3 className="w-8 h-8 mx-auto mb-2 text-muted-foreground opacity-50" />
-                    <p className="text-xs text-muted-foreground">Price charts coming soon</p>
-                  </div>
-                  
-                  <div className="text-center p-3 bg-muted/30 rounded-lg">
-                    <Activity className="w-8 h-8 mx-auto mb-2 text-muted-foreground opacity-50" />
-                    <p className="text-xs text-muted-foreground">AI analysis coming soon</p>
-                  </div>
+                <div className="flex items-center justify-between mb-3">
+                  <h3 className="text-sm font-semibold">AI Analysis</h3>
+                  <Button
+                    onClick={generateAiAnalysis}
+                    disabled={aiLoading || !stockData || !stockNews.length}
+                    size="sm"
+                    variant="outline"
+                    className="text-xs"
+                  >
+                    {aiLoading ? (
+                      <>
+                        <Loader2 className="w-3 h-3 mr-1 animate-spin" />
+                        Analyzing...
+                      </>
+                    ) : (
+                      <>
+                        <Bot className="w-3 h-3 mr-1" />
+                        Generate
+                      </>
+                    )}
+                  </Button>
                 </div>
+                
+                {aiAnalysis ? (
+                  <div className="space-y-3">
+                    <div className="p-3 bg-muted/30 rounded-lg">
+                      <div className="flex items-center gap-2 mb-2">
+                        <Bot className="w-4 h-4 text-primary" />
+                        <span className="text-xs font-semibold">AI Analysis</span>
+                      </div>
+                      <div className="text-xs text-muted-foreground whitespace-pre-wrap leading-relaxed">
+                        {aiAnalysis}
+                      </div>
+                    </div>
+                  </div>
+                ) : (
+                  <div className="text-center p-3 bg-muted/30 rounded-lg">
+                    <Bot className="w-6 h-6 mx-auto mb-2 text-muted-foreground opacity-50" />
+                    <p className="text-xs text-muted-foreground">Click "Generate" to get AI-powered analysis</p>
+                  </div>
+                )}
               </div>
 
               <div className="p-4 rounded-lg bg-muted/20 border border-border/50">
