@@ -61,6 +61,10 @@ const sectorPerformance = [
 ];
 
 export function MarketView() {
+  const [activeType, setActiveType] = useState<"gainers" | "losers" | "active">(
+    "gainers"
+  );
+  const [stocks, setStocks] = useState<any[]>([]);
   const [data, setData] = useState<MarketData[]>([]);
   const [error, setError] = useState<string | null>(null);
   const [hoveredEventId, setHoveredEventId] = useState<string | null>(null);
@@ -70,6 +74,18 @@ export function MarketView() {
   const [activeTimeframe, setActiveTimeframe] = useState<
     "1D" | "1W" | "1M" | "3M"
   >("1D");
+
+  async function fetchTopStocks(timeframe: "1D" | "1W" | "1M" | "3M") {
+    try {
+      const res = await fetch(
+        `/api/stocks/trending?type=${activeType}&limit=10&timeframe=${activeTimeframe}`
+      );
+      const json = await res.json();
+      if (json.success) setStocks(json.data);
+    } catch (err) {
+      console.error(err);
+    }
+  }
 
   async function handleFetch(
     symbol: string,
@@ -105,7 +121,7 @@ export function MarketView() {
     <div className="h-full w-full overflow-auto bg-gradient-to-br from-slate-50 via-white to-slate-100 dark:from-slate-900 dark:via-slate-800 dark:to-slate-900">
       {/* Hero Section */}
       <button
-        onClick={() => handleFetch("NVDA", activeTimeframe)}
+        onClick={() => fetchTopStocks(activeTimeframe)}
         className="px-4 py-2 bg-green-500 text-white rounded cursor-pointer"
       >
         Fetch Data
@@ -128,58 +144,94 @@ export function MarketView() {
           </div>
         </div>
       </div>
+
       {/* Main Content */}
       <div className="container mx-auto px-6 pb-8 space-y-8">
         {/* Market Performance Section */}
         <div className="space-y-4">
+          {/* Header with filters */}
           <div className="flex items-center justify-between">
             <div className="flex items-center gap-3">
               <div className="w-1 h-8 bg-gradient-to-b from-blue-500 to-purple-500 rounded-full"></div>
               <h2 className="text-2xl font-bold text-slate-900 dark:text-white">
-                Market Performance
+                Top Stocks
               </h2>
             </div>
-            <div className="flex gap-2">
-              {(["1D", "1W", "1M", "3M"] as const).map((timeframe) => (
-                <button
-                  key={timeframe}
-                  onClick={() => setActiveTimeframe(timeframe)}
-                  className={`px-3 py-1.5 text-sm rounded-lg transition-colors ${
-                    activeTimeframe === timeframe
-                      ? "bg-blue-500 text-white"
-                      : "bg-slate-100 dark:bg-slate-700 hover:bg-slate-200 dark:hover:bg-slate-600"
-                  }`}
-                >
-                  {timeframe}
-                </button>
-              ))}
+
+            {/* Buttons */}
+            <div className="flex flex-col md:flex-row md:items-center gap-2">
+              {/* Type buttons */}
+              <div className="flex gap-2">
+                {(["gainers", "losers", "active"] as const).map((type) => (
+                  <button
+                    key={type}
+                    onClick={() => setActiveType(type)}
+                    className={`px-3 py-1.5 text-sm rounded-md capitalize ${
+                      activeType === type
+                        ? "bg-green-500 text-white"
+                        : "bg-gray-200 hover:bg-gray-300 dark:bg-gray-700 dark:hover:bg-gray-600"
+                    }`}
+                  >
+                    {type}
+                  </button>
+                ))}
+              </div>
+
+              {/* Timeframe buttons */}
+              <div className="flex gap-2 mt-2 md:mt-0">
+                {(["1D", "1W", "1M", "3M"] as const).map((tf) => (
+                  <button
+                    key={tf}
+                    onClick={() => setActiveTimeframe(tf)}
+                    className={`px-3 py-1.5 text-sm rounded-md ${
+                      activeTimeframe === tf
+                        ? "bg-blue-500 text-white"
+                        : "bg-gray-200 hover:bg-gray-300 dark:bg-gray-700 dark:hover:bg-gray-600"
+                    }`}
+                  >
+                    {tf}
+                  </button>
+                ))}
+              </div>
             </div>
           </div>
 
-          {data && data.length > 0 && (
-            <div className="grid grid-cols-1 lg:grid-cols-3 gap-4">
-              <MarketChart
-                title="NVIDIA"
-                data={data}
-                change={45.23}
-                changePercent={1.02}
-                color="hsl(var(--chart-1))"
-              />
-              <MarketChart
-                title="NASDAQ"
-                data={nasdaqData}
-                change={-28.45}
-                changePercent={-0.2}
-                color="hsl(var(--chart-2))"
-              />
-              <MarketChart
-                title="DOW JONES"
-                data={dowData}
-                change={120.5}
-                changePercent={0.35}
-                color="hsl(var(--chart-3))"
-              />
+          {/* Data grid */}
+          {stocks && stocks.length > 0 ? (
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
+              {stocks.map((stock) => (
+                <Card
+                  key={stock.symbol}
+                  className="p-4 flex flex-col justify-between border-border bg-card/60 backdrop-blur-sm hover:shadow-md transition"
+                >
+                  <div>
+                    <h3 className="text-lg font-semibold">{stock.symbol}</h3>
+                    <p className="text-sm text-muted-foreground">
+                      {stock.timeframe} timeframe
+                    </p>
+                  </div>
+                  <div className="flex justify-between items-end mt-3">
+                    <span className="text-xl font-bold">
+                      ${stock.price.toFixed(2)}
+                    </span>
+                    <span
+                      className={`text-sm font-medium ${
+                        stock.changePercent >= 0
+                          ? "text-green-500"
+                          : "text-red-500"
+                      }`}
+                    >
+                      {stock.changePercent >= 0 ? "+" : ""}
+                      {stock.changePercent.toFixed(2)}%
+                    </span>
+                  </div>
+                </Card>
+              ))}
             </div>
+          ) : (
+            <p className="text-muted-foreground text-sm">
+              Loading top stocks...
+            </p>
           )}
         </div>
 

@@ -105,11 +105,11 @@ export async function GET(req: Request) {
 
     const firstClose = parseFloat(entries[0][1]["4. close"]);
 
-    const chartData = entries.map(([time, val]) => {
+    const chartData: MarketData[] = entries.map(([time, val]) => {
       const v = val as Record<string, string>;
       return {
         time,
-        value: ((parseFloat(v["4. close"]) - firstClose) / firstClose) * 100,
+        value: parseFloat(v["4. close"]), // Return actual price, not percentage
       };
     });
 
