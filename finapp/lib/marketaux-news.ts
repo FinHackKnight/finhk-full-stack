@@ -1,9 +1,7 @@
-// MarketAux News API Service
+// MarketAux News service wrapper
 
-const MARKETAUX_API_KEY = process.env.MARKETAUX_API_KEY;
-const MARKETAUX_API_BASE_URL = process.env.MARKETAUX_API_BASE_URL || 'https://api.marketaux.com/v1';
+export type SentimentLabel = 'positive' | 'negative' | 'neutral';
 
-// Unified news item interface
 export interface NewsItem {
   uuid: string;
   title: string;
@@ -12,223 +10,114 @@ export interface NewsItem {
   published_at: string;
   source: string;
   category: string;
-  sentiment?: string;
+  sentiment?: SentimentLabel;
   symbols?: string[];
   image_url?: string;
-  author?: string;
-  entities?: {
-    symbol?: string;
-    name?: string;
-    exchange?: string;
-    country?: string;
-    type?: string;
-    industry?: string;
-  }[];
 }
 
-// MarketAux API Response interface
-interface MarketAuxResponse {
-  meta: {
-    found: number;
-    returned: number;
-    limit: number;
-    page: number;
-  };
-  data: MarketAuxNewsItem[];
-}
-
-interface MarketAuxNewsItem {
-  uuid: string;
-  title: string;
-  description: string;
-  snippet: string;
-  url: string;
-  image_url: string;
-  language: string;
-  published_at: string;
-  source: string;
-  relevance_score: number;
-  entities: {
-    symbol: string;
-    name: string;
-    exchange: string;
-    country: string;
-    type: string;
-    industry: string;
-    match_score: number;
-    sentiment_score: number;
-    highlights: {
-      sentiment: string;
-      highlight: string;
-    }[];
-  }[];
-  similar: string[];
-}
-
-interface NewsQueryParams {
+export interface NewsQueryParams {
+  limit: number;
+  page?: number;
+  sort?: 'published_desc' | 'published_asc' | 'relevance';
+  languages?: string[]; // e.g. ['en']
   symbols?: string[];
   exchanges?: string[];
-  entity_types?: string[];
   countries?: string[];
-  languages?: string[];
-  sentiment?: 'positive' | 'negative' | 'neutral';
+  entity_types?: string[];
+  sentiment?: SentimentLabel;
   min_match_score?: number;
   must_have_entities?: boolean;
-  published_after?: string; // ISO date string
-  published_before?: string; // ISO date string
-  sort?: 'published_desc' | 'published_asc' | 'relevance_desc' | 'relevance_asc';
   filter_entities?: boolean;
-  limit?: number;
-  page?: number;
+  published_after?: string; // ISO string
+  published_before?: string; // ISO string
+}
+
+const API_BASE = process.env.MARKETAUX_API_BASE_URL || 'https://api.marketaux.com/v1/news/all';
+const API_KEY = process.env.MARKETAUX_API_KEY || process.env.NEXT_PUBLIC_MARKETAUX_API_KEY;
+
+function toComma(val?: string[] | undefined) {
+  return val && val.length ? val.join(',') : undefined;
+}
+
+function pickCategory(item: any): string {
+  // If there are symbols/entities, categorize as Stocks
+  if (Array.isArray(item.entities) && item.entities.some((e: any) => e.type === 'equity')) return 'Stocks';
+  // Basic keyword check
+  const text = `${item.title || ''} ${item.description || ''}`.toLowerCase();
+  if (text.includes('market') || text.includes('stock') || text.includes('trading')) return 'Market';
+  if (text.includes('crypto') || text.includes('bitcoin') || text.includes('ethereum')) return 'Crypto';
+  if (text.includes('oil') || text.includes('gold') || text.includes('commodity')) return 'Commodities';
+  return 'Financial';
+}
+
+function mapNewsItem(raw: any): NewsItem {
+  const symbols: string[] = Array.isArray(raw.entities)
+    ? raw.entities
+        .filter((e: any) => e.symbol || e.code)
+        .map((e: any) => e.symbol || e.code)
+        .slice(0, 3)
+    : [];
+
+  const sentiment: SentimentLabel | undefined =
+    (raw.overall_sentiment_label as SentimentLabel) ||
+    (raw.sentiment as SentimentLabel) ||
+    undefined;
+
+  const sourceName = raw.source || raw.source_name || raw.source_domain || raw.source_title || 'MarketAux';
+
+  return {
+    uuid: String(raw.uuid || raw.id || `${Date.now()}-${Math.random()}`),
+    title: raw.title || '',
+    description: (raw.description || '').toString().replace(/<[^>]*>/g, ''),
+    url: raw.url || raw.link || '#',
+    published_at: raw.published_at || raw.published_at_utc || new Date().toISOString(),
+    source: sourceName,
+    category: pickCategory(raw),
+    sentiment,
+    symbols,
+    image_url: raw.image_url || raw.image || undefined,
+  };
 }
 
 class MarketAuxService {
-  async fetchNews(params: NewsQueryParams = {}): Promise<NewsItem[]> {
-    if (!MARKETAUX_API_KEY) {
-      console.error('MarketAux API key not configured');
-      return [];
+  async fetchNews(params: NewsQueryParams): Promise<NewsItem[]> {
+    if (!API_KEY) {
+      throw new Error('MARKETAUX_API_KEY is not set');
     }
 
-    try {
-      const url = new URL(`${MARKETAUX_API_BASE_URL}/news/all`);
-      
-      // Add API key
-      url.searchParams.append('api_token', MARKETAUX_API_KEY);
-      
-      // Add query parameters
-      if (params.symbols?.length) {
-        url.searchParams.append('symbols', params.symbols.join(','));
-      }
-      if (params.exchanges?.length) {
-        url.searchParams.append('exchanges', params.exchanges.join(','));
-      }
-      if (params.entity_types?.length) {
-        url.searchParams.append('entity_types', params.entity_types.join(','));
-      }
-      if (params.countries?.length) {
-        url.searchParams.append('countries', params.countries.join(','));
-      }
-      if (params.languages?.length) {
-        url.searchParams.append('languages', params.languages.join(','));
-      }
-      if (params.sentiment) {
-        url.searchParams.append('sentiment', params.sentiment);
-      }
-      if (params.min_match_score !== undefined) {
-        url.searchParams.append('min_match_score', params.min_match_score.toString());
-      }
-      if (params.must_have_entities !== undefined) {
-        url.searchParams.append('must_have_entities', params.must_have_entities.toString());
-      }
-      if (params.published_after) {
-        url.searchParams.append('published_after', params.published_after);
-      }
-      if (params.published_before) {
-        url.searchParams.append('published_before', params.published_before);
-      }
-      if (params.sort) {
-        url.searchParams.append('sort', params.sort);
-      }
-      if (params.filter_entities !== undefined) {
-        url.searchParams.append('filter_entities', params.filter_entities.toString());
-      }
-      if (params.limit) {
-        url.searchParams.append('limit', params.limit.toString());
-      }
-      if (params.page) {
-        url.searchParams.append('page', params.page.toString());
-      }
+    const url = new URL(API_BASE);
 
-      console.log('Fetching MarketAux news:', url.toString());
+    // Required
+    url.searchParams.set('api_token', API_KEY);
+    url.searchParams.set('limit', String(params.limit ?? 50));
 
-      const response = await fetch(url.toString(), {
-        headers: {
-          'Accept': 'application/json',
-          'User-Agent': 'FinApp/1.0'
-        }
-      });
+    // Optional
+    if (params.page !== undefined) url.searchParams.set('page', String(params.page));
+    if (params.sort) url.searchParams.set('sort', params.sort);
+    if (params.languages?.length) url.searchParams.set('language', toComma(params.languages)!);
+    if (params.symbols?.length) url.searchParams.set('symbols', toComma(params.symbols)!);
+    if (params.exchanges?.length) url.searchParams.set('exchanges', toComma(params.exchanges)!);
+    if (params.countries?.length) url.searchParams.set('countries', toComma(params.countries)!);
+    if (params.entity_types?.length) url.searchParams.set('entity_types', toComma(params.entity_types)!);
+    if (params.sentiment) url.searchParams.set('sentiment', params.sentiment);
+    if (typeof params.min_match_score === 'number') url.searchParams.set('min_match_score', String(params.min_match_score));
+    if (typeof params.must_have_entities === 'boolean') url.searchParams.set('must_have_entities', String(params.must_have_entities));
+    if (typeof params.filter_entities === 'boolean') url.searchParams.set('filter_entities', String(params.filter_entities));
+    if (params.published_after) url.searchParams.set('published_after', params.published_after);
+    if (params.published_before) url.searchParams.set('published_before', params.published_before);
 
-      if (!response.ok) {
-        throw new Error(`MarketAux API error: ${response.status} ${response.statusText}`);
-      }
-
-      const data: MarketAuxResponse = await response.json();
-      
-      return data.data.map((item) => this.transformNewsItem(item));
-    } catch (error) {
-      console.error('Error fetching MarketAux news:', error);
-      return [];
+    const resp = await fetch(url.toString());
+    if (!resp.ok) {
+      const text = await resp.text().catch(() => '');
+      throw new Error(`MarketAux HTTP ${resp.status} ${resp.statusText}: ${text}`);
     }
-  }
 
-  private transformNewsItem(item: MarketAuxNewsItem): NewsItem {
-    // Extract symbols from entities
-    const symbols = item.entities?.map(entity => entity.symbol).filter(Boolean) || [];
-    
-    // Determine sentiment from entities
-    const sentiment = this.calculateOverallSentiment(item.entities);
-    
-    // Categorize news based on entities and content
-    const category = this.categorizeNews(item.title, item.description, item.entities);
+    const data = await resp.json();
 
-    return {
-      uuid: item.uuid,
-      title: item.title,
-      description: item.description || item.snippet || '',
-      url: item.url,
-      published_at: item.published_at,
-      source: item.source,
-      category,
-      sentiment,
-      symbols,
-      image_url: item.image_url || '',
-      entities: item.entities?.map(entity => ({
-        symbol: entity.symbol,
-        name: entity.name,
-        exchange: entity.exchange,
-        country: entity.country,
-        type: entity.type,
-        industry: entity.industry
-      }))
-    };
-  }
-
-  private calculateOverallSentiment(entities: MarketAuxNewsItem['entities']): string {
-    if (!entities?.length) return 'neutral';
-    
-    const avgSentiment = entities.reduce((sum, entity) => sum + entity.sentiment_score, 0) / entities.length;
-    
-    if (avgSentiment > 0.1) return 'positive';
-    if (avgSentiment < -0.1) return 'negative';
-    return 'neutral';
-  }
-
-  private categorizeNews(title: string, description: string, entities: MarketAuxNewsItem['entities']): string {
-    const content = (title + ' ' + description).toLowerCase();
-    
-    // Check entity types first
-    if (entities?.length) {
-      const entityTypes = entities.map(e => e.type?.toLowerCase());
-      if (entityTypes.includes('stock') || entityTypes.includes('equity')) return 'Stocks';
-      if (entityTypes.includes('crypto') || entityTypes.includes('cryptocurrency')) return 'Crypto';
-      if (entityTypes.includes('forex') || entityTypes.includes('currency')) return 'Forex';
-      if (entityTypes.includes('commodity')) return 'Commodities';
-    }
-    
-    // Fallback to content-based categorization
-    if (content.includes('earnings') || content.includes('stock') || content.includes('share')) return 'Stocks';
-    if (content.includes('market') || content.includes('trading') || content.includes('dow') || content.includes('s&p')) return 'Market';
-    if (content.includes('crypto') || content.includes('bitcoin') || content.includes('ethereum')) return 'Crypto';
-    if (content.includes('fed') || content.includes('interest rate') || content.includes('inflation')) return 'Economic';
-    if (content.includes('oil') || content.includes('gold') || content.includes('commodity')) return 'Commodities';
-    if (content.includes('merger') || content.includes('acquisition') || content.includes('ipo')) return 'Corporate';
-    
-    return 'Financial';
+    // MarketAux commonly returns { data: [...], meta: {...} }
+    const items = Array.isArray(data?.data) ? data.data : Array.isArray(data) ? data : [];
+    return items.map(mapNewsItem);
   }
 }
 
-// Export singleton instance
 export const marketAuxService = new MarketAuxService();
-
-// Export query params interface for use in API routes
-export type { NewsQueryParams };
