@@ -1,10 +1,10 @@
 "use client"
 
-import { Globe, TrendingUp, LayoutDashboard, Moon, Sun } from "lucide-react"
+import { Globe, TrendingUp, Newspaper, Moon, Sun } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { useState } from "react"
 
-type ViewType = "map" | "market" | "dashboard"
+type ViewType = "map" | "market" | "news"
 
 interface NavigationProps {
   currentView: ViewType
@@ -49,13 +49,13 @@ export function Navigation({ currentView, onViewChange }: NavigationProps) {
             Market View
           </Button>
           <Button
-            variant={currentView === "dashboard" ? "default" : "ghost"}
+            variant={currentView === "news" ? "default" : "ghost"}
             size="sm"
-            onClick={() => onViewChange("dashboard")}
+            onClick={() => onViewChange("news")}
             className="gap-2"
           >
-            <LayoutDashboard className="w-4 h-4" />
-            Dashboard
+            <Newspaper className="w-4 h-4" />
+            News
           </Button>
         </div>
       </div>
