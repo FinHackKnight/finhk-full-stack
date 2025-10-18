@@ -12,7 +12,7 @@ export async function GET(req: Request) {
   try {
     const urlParams = new URL(req.url).searchParams;
     const symbol = urlParams.get("symbol");
-    const interval = urlParams.get("interval") || "daily"; // "daily" or "weekly"
+    const interval = urlParams.get("interval") || "1D"; // "daily" or "weekly"
 
     console.log("Fetching symbol:", symbol, "interval:", interval);
 
@@ -24,12 +24,33 @@ export async function GET(req: Request) {
     }
     let data: any;
 
-    // Determine Alpha Vantage function
-    const func =
-      interval === "weekly" ? "TIME_SERIES_WEEKLY" : "TIME_SERIES_DAILY";
-    const alphaUrl = `https://www.alphavantage.co/query?function=${func}&symbol=${symbol}&apikey=${ALPHA_VANTAGE_KEY}`;
+    let func = "TIME_SERIES_DAILY";
+    let sliceCount = 7; // default: last 7 days
 
-    console.log("Alpha Vantage URL:", alphaUrl);
+    switch (interval) {
+      case "1D":
+        func = "TIME_SERIES_INTRADAY";
+        break;
+      case "1W":
+        func = "TIME_SERIES_DAILY";
+        sliceCount = 7;
+        break;
+      case "1M":
+        func = "TIME_SERIES_DAILY";
+        sliceCount = 30;
+        break;
+      case "3M":
+        func = "TIME_SERIES_WEEKLY";
+        sliceCount = 12;
+        break;
+    }
+
+    let alphaUrl: string;
+    if (func === "TIME_SERIES_INTRADAY") {
+      alphaUrl = `https://www.alphavantage.co/query?function=${func}&symbol=${symbol}&interval=5min&apikey=${ALPHA_VANTAGE_KEY}`;
+    } else {
+      alphaUrl = `https://www.alphavantage.co/query?function=${func}&symbol=${symbol}&apikey=${ALPHA_VANTAGE_KEY}`;
+    }
     try {
       const res = await fetch(alphaUrl);
       const text = await res.text();
@@ -63,9 +84,13 @@ export async function GET(req: Request) {
     }
 
     const timeSeriesKey =
-      interval === "weekly" ? "Weekly Time Series" : "Time Series (Daily)";
-    const series = data[timeSeriesKey];
+      func === "TIME_SERIES_INTRADAY"
+        ? "Time Series (5min)"
+        : func === "TIME_SERIES_WEEKLY"
+        ? "Weekly Time Series"
+        : "Time Series (Daily)";
 
+    const series = data[timeSeriesKey];
     if (!series) {
       return NextResponse.json(
         { error: "No data found for this symbol" },
@@ -73,18 +98,18 @@ export async function GET(req: Request) {
       );
     }
 
-    // Convert to array sorted by date ascending
+    // Sort and limit data
     const entries = Object.entries(series)
       .sort(([a], [b]) => new Date(a).getTime() - new Date(b).getTime())
-      .slice(-7);
+      .slice(-sliceCount);
 
     const firstClose = parseFloat(entries[0][1]["4. close"]);
 
-    const chartData: MarketData[] = entries.map(([time, val]) => {
+    const chartData = entries.map(([time, val]) => {
       const v = val as Record<string, string>;
       return {
         time,
-        value: parseFloat(v["4. close"]), // Return actual price, not percentage
+        value: ((parseFloat(v["4. close"]) - firstClose) / firstClose) * 100,
       };
     });
 

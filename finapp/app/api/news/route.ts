@@ -1,11 +1,11 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { marketAuxService, NewsItem, NewsQueryParams } from '@/lib/marketaux-news';
+import { marketAuxService, NewsQueryParams } from '@/lib/marketaux-news';
 
-// GET ALL LATEST NEWS using MarketAux API
+// GET ALL LATEST NEWS using MarketAux API only
 export async function GET(request: NextRequest) {
   try {
     const { searchParams } = new URL(request.url);
-    
+
     // Extract query parameters
     const limit = parseInt(searchParams.get('limit') || '50');
     const page = parseInt(searchParams.get('page') || '1');
@@ -17,10 +17,6 @@ export async function GET(request: NextRequest) {
     const published_after = searchParams.get('published_after');
     const published_before = searchParams.get('published_before');
     const sort = searchParams.get('sort') as NewsQueryParams['sort'];
-    
-    console.log('Fetching MarketAux news with params:', { 
-      limit, page, symbols, exchanges, countries, sentiment, must_have_entities 
-    });
 
     // Build query parameters for MarketAux
     const queryParams: NewsQueryParams = {
@@ -28,7 +24,7 @@ export async function GET(request: NextRequest) {
       page,
       sort: sort || 'published_desc',
       languages: ['en'], // Default to English
-      must_have_entities
+      must_have_entities,
     };
 
     // Add optional filters
@@ -56,25 +52,24 @@ export async function GET(request: NextRequest) {
           exchanges,
           countries,
           sentiment,
-          must_have_entities
-        }
-      }
+          must_have_entities,
+        },
+      },
     });
-
   } catch (error: any) {
     console.error('MarketAux news API error:', error);
-    
+
     return NextResponse.json(
-      { 
+      {
         error: 'Internal server error while fetching news',
-        details: error.message 
+        details: error.message,
       },
       { status: 500 }
     );
   }
 }
 
-// POST method for complex news queries
+// POST method for complex news queries (MarketAux only)
 export async function POST(request: NextRequest) {
   try {
     const body = await request.json();
@@ -91,10 +86,8 @@ export async function POST(request: NextRequest) {
       published_after,
       published_before,
       sort = 'published_desc',
-      filter_entities = true
-    } = body;
-
-    console.log('POST: Fetching MarketAux news with body:', body);
+      filter_entities = true,
+    } = body || {};
 
     // Build query parameters
     const queryParams: NewsQueryParams = {
@@ -103,7 +96,7 @@ export async function POST(request: NextRequest) {
       sort,
       languages: ['en'],
       must_have_entities,
-      filter_entities
+      filter_entities,
     };
 
     // Add optional filters
@@ -128,17 +121,16 @@ export async function POST(request: NextRequest) {
         limit,
         page,
         source: 'marketaux',
-        filters: queryParams
-      }
+        filters: queryParams,
+      },
     });
-
   } catch (error: any) {
     console.error('MarketAux news POST error:', error);
-    
+
     return NextResponse.json(
-      { 
+      {
         error: 'Internal server error while fetching news',
-        details: error.message 
+        details: error.message,
       },
       { status: 500 }
     );

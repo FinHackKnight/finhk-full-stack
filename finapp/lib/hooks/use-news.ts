@@ -10,8 +10,7 @@ interface NewsResponse {
     found: number;
     returned: number;
     limit: number;
-    page: number;
-    source: string;
+    source?: string;
   };
 }
 
@@ -97,10 +96,11 @@ export function useNews(limit: number = 10): UseNewsReturn {
         }
       }
 
-      const response = await fetch(`/api/news?limit=3&must_have_entities=false&sort=published_desc`);
+      // Ensure sensible defaults for MarketAux
+      const response = await fetch(`/api/news?limit=${limit}&must_have_entities=false&sort=published_desc`);
       
       if (!response.ok) {
-        throw new Error(`Failed to fetch news: ${response.statusText}`);
+        throw new Error(`Failed to fetch news: ${response.status} ${response.statusText}`);
       }
 
       const data: NewsResponse = await response.json();
