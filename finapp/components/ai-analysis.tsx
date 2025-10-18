@@ -124,10 +124,15 @@ export function AIAnalysis({ symbol, stockData }: AIAnalysisProps) {
 
       <div className="flex-1 flex flex-col">
         {!aiResponse && !isAnalyzing && (
-          <div className="flex-1 flex flex-col justify-center text-center p-4">
-            <Sparkles className="w-8 h-8 mx-auto mb-3 text-muted-foreground opacity-50" />
-            <p className="text-xs text-muted-foreground mb-3">
+          <div className="flex-1 flex flex-col justify-center text-center p-6">
+            <div className="w-16 h-16 mx-auto mb-4 rounded-full bg-gradient-to-br from-purple-500/20 to-pink-500/20 flex items-center justify-center">
+              <Sparkles className="w-8 h-8 text-purple-500" />
+            </div>
+            <p className="text-sm text-muted-foreground mb-2 font-medium">
               Get AI-powered analysis for {symbol}
+            </p>
+            <p className="text-xs text-muted-foreground">
+              Advanced machine learning insights
             </p>
           </div>
         )}
@@ -150,28 +155,28 @@ export function AIAnalysis({ symbol, stockData }: AIAnalysisProps) {
         )}
 
         {aiResponse && (
-          <div className="flex-1 space-y-4">
+          <div className="flex-1 space-y-6">
             {/* Recommendation */}
-            <div className="p-3 rounded-lg bg-muted/20 border border-border/50">
-              <div className="flex items-center justify-between mb-2">
-                <span className="text-xs font-semibold">Recommendation</span>
-                <span className={`text-xs px-2 py-1 rounded ${getRecommendationColor(aiResponse.recommendation)}`}>
+            <div className="group p-4 rounded-xl bg-gradient-to-br from-blue-500/10 to-blue-600/5 border border-blue-500/20 hover:border-blue-500/40 transition-all duration-300 hover:shadow-lg hover:shadow-blue-500/10">
+              <div className="flex items-center justify-between mb-3">
+                <span className="text-sm font-semibold text-blue-600 dark:text-blue-400">Recommendation</span>
+                <span className={`text-sm px-3 py-1 rounded-full font-bold ${getRecommendationColor(aiResponse.recommendation)}`}>
                   {aiResponse.recommendation}
                 </span>
               </div>
-              <div className="flex items-center justify-between text-xs text-muted-foreground">
-                <span>Confidence</span>
-                <span className="font-semibold">{aiResponse.confidence}%</span>
+              <div className="flex items-center justify-between text-sm">
+                <span className="text-muted-foreground">Confidence</span>
+                <span className="font-bold text-blue-600 dark:text-blue-400">{aiResponse.confidence}%</span>
               </div>
             </div>
 
             {/* Risk Assessment */}
-            <div className="p-3 rounded-lg bg-muted/20 border border-border/50">
-              <div className="flex items-center justify-between mb-2">
-                <span className="text-xs font-semibold">Risk Level</span>
-                <div className="flex items-center gap-1">
+            <div className="group p-4 rounded-xl bg-gradient-to-br from-orange-500/10 to-orange-600/5 border border-orange-500/20 hover:border-orange-500/40 transition-all duration-300 hover:shadow-lg hover:shadow-orange-500/10">
+              <div className="flex items-center justify-between mb-3">
+                <span className="text-sm font-semibold text-orange-600 dark:text-orange-400">Risk Level</span>
+                <div className="flex items-center gap-2">
                   {getRiskIcon(aiResponse.riskLevel)}
-                  <span className={`text-xs font-semibold ${getRiskColor(aiResponse.riskLevel)}`}>
+                  <span className={`text-sm font-bold ${getRiskColor(aiResponse.riskLevel)}`}>
                     {aiResponse.riskLevel}
                   </span>
                 </div>
@@ -179,12 +184,12 @@ export function AIAnalysis({ symbol, stockData }: AIAnalysisProps) {
             </div>
 
             {/* Key Points */}
-            <div className="p-3 rounded-lg bg-muted/20 border border-border/50">
-              <h4 className="text-xs font-semibold mb-2">Key Points</h4>
-              <ul className="space-y-1">
+            <div className="group p-4 rounded-xl bg-gradient-to-br from-green-500/10 to-green-600/5 border border-green-500/20 hover:border-green-500/40 transition-all duration-300 hover:shadow-lg hover:shadow-green-500/10">
+              <h4 className="text-sm font-semibold mb-3 text-green-600 dark:text-green-400">Key Points</h4>
+              <ul className="space-y-2">
                 {aiResponse.keyPoints.map((point, index) => (
-                  <li key={index} className="text-xs text-muted-foreground flex items-start gap-2">
-                    <span className="w-1 h-1 rounded-full bg-primary mt-2 flex-shrink-0"></span>
+                  <li key={index} className="text-sm text-muted-foreground flex items-start gap-3">
+                    <span className="w-2 h-2 rounded-full bg-green-500 mt-2 flex-shrink-0"></span>
                     {point}
                   </li>
                 ))}
@@ -192,9 +197,9 @@ export function AIAnalysis({ symbol, stockData }: AIAnalysisProps) {
             </div>
 
             {/* Analysis Text */}
-            <div className="p-3 rounded-lg bg-muted/20 border border-border/50">
-              <h4 className="text-xs font-semibold mb-2">Analysis</h4>
-              <p className="text-xs text-muted-foreground leading-relaxed">
+            <div className="group p-4 rounded-xl bg-gradient-to-br from-purple-500/10 to-purple-600/5 border border-purple-500/20 hover:border-purple-500/40 transition-all duration-300 hover:shadow-lg hover:shadow-purple-500/10">
+              <h4 className="text-sm font-semibold mb-3 text-purple-600 dark:text-purple-400">Analysis</h4>
+              <p className="text-sm text-muted-foreground leading-relaxed">
                 {aiResponse.analysis}
               </p>
             </div>
