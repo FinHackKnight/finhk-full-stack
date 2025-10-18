@@ -11,9 +11,9 @@ export function FixedEventPopup({ event }: FixedEventPopupProps) {
   if (!event) return null;
 
   const impactColors = {
-    low: "bg-emerald-500/20 text-emerald-400 border-emerald-500/50",
+    low: "bg-amber-500/20 text-emerald-400 border-emerald-500/50",
     medium: "bg-amber-500/20 text-amber-400 border-amber-500/50",
-    high: "bg-rose-500/20 text-rose-400 border-rose-500/50",
+    high: "bg-amber-500/20 text-rose-400 border-rose-500/50",
   };
 
   const impactBadgeColors = {
@@ -24,13 +24,13 @@ export function FixedEventPopup({ event }: FixedEventPopupProps) {
 
   return (
     <div
-      className={`w-80 rounded-lg border bg-card/95 backdrop-blur-sm shadow-2xl pointer-events-none animate-in fade-in-0 zoom-in-95 duration-200 ${
+      className={`w-80 rounded-lg border bg-card/90 backdrop-blur-sm shadow-2xl pointer-events-none animate-in fade-in-0 zoom-in-95 duration-200 ${
         impactColors[event.impactLevel]
       }`}
       style={{
         position: "fixed",
         top: "8rem",
-        right: "1rem",
+        left: "25rem",
         zIndex: 99999,
       }}
     >
@@ -54,7 +54,7 @@ export function FixedEventPopup({ event }: FixedEventPopupProps) {
         </div>
 
         <div className="space-y-2">
-          <p className="text-xs font-medium text-muted-foreground uppercase tracking-wide">
+          <p className="text-xs font-medium font-bold text-muted-foreground uppercase tracking-wide">
             Affected Markets
           </p>
           <div className="space-y-1.5">
@@ -63,7 +63,9 @@ export function FixedEventPopup({ event }: FixedEventPopupProps) {
                 key={market.symbol}
                 className="flex items-center justify-between text-sm"
               >
-                <span className="font-mono font-medium">{market.symbol}</span>
+                <span className="font-mono font-medium text-white">
+                  {market.symbol}
+                </span>
                 <div className="flex items-center gap-1.5">
                   {market.changePercent > 0 ? (
                     <TrendingUp className="w-4 h-4 text-emerald-400" />
