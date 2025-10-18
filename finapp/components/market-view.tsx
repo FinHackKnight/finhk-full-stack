@@ -20,6 +20,9 @@ import {
   DollarSign,
   BarChart3,
 } from "lucide-react";
+import { Search } from "lucide-react";
+import { Input } from "./ui/input";
+import { Button } from "./ui/button";
 
 // Generate sample data
 const generateData = (base: number, volatility: number, points = 24) => {
@@ -74,6 +77,7 @@ export function MarketView() {
   const [activeTimeframe, setActiveTimeframe] = useState<
     "1D" | "1W" | "1M" | "3M"
   >("1D");
+  const [searchSymbol, setSearchSymbol] = useState<string>("");
 
   async function fetchTopStocks(timeframe: "1D" | "1W" | "1M" | "3M") {
     try {
@@ -141,6 +145,29 @@ export function MarketView() {
               Real-time market data, sector performance, and global events
               impact analysis
             </p>
+          </div>
+
+          <div className="flex items-center gap-3">
+            <div className="relative">
+              <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
+              <Input
+                placeholder="Search stocks (e.g., AAPL, NVDA, TSLA)"
+                value={searchSymbol}
+                onChange={(e) => setSearchSymbol(e.target.value.toUpperCase())}
+                onKeyDown={(e) => {
+                  if (e.key === "Enter" && searchSymbol.trim()) {
+                  }
+                }}
+                className="pl-9 w-64 bg-background/50 border-border/50 focus:bg-background focus:border-border transition-all"
+              />
+            </div>
+            <Button
+              onClick={() => searchSymbol.trim()}
+              disabled={!searchSymbol.trim()}
+              className="shrink-0"
+            >
+              Search
+            </Button>
           </div>
         </div>
       </div>
