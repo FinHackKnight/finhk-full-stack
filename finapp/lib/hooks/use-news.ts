@@ -1,7 +1,7 @@
 'use client';
 
 import { useState, useEffect, useCallback } from 'react';
-import type { NewsItem } from '@/lib/news-aggregation';
+import type { NewsItem } from '@/lib/marketaux-news';
 
 interface NewsResponse {
   success: boolean;
@@ -10,7 +10,8 @@ interface NewsResponse {
     found: number;
     returned: number;
     limit: number;
-    offset: number;
+    page: number;
+    source: string;
   };
 }
 
@@ -27,7 +28,7 @@ interface CachedNewsData {
   limit: number;
 }
 
-const CACHE_KEY = 'finapp_news_cache';
+const CACHE_KEY = 'finapp_marketaux_news_cache';
 const CACHE_DURATION = 5 * 60 * 1000; // 5 minutes in milliseconds
 
 export function useNews(limit: number = 10): UseNewsReturn {
@@ -59,7 +60,7 @@ export function useNews(limit: number = 10): UseNewsReturn {
 
       return null;
     } catch (err) {
-      console.warn('Error reading news cache:', err);
+      console.warn('Error reading MarketAux news cache:', err);
       localStorage.removeItem(CACHE_KEY);
       return null;
     }
@@ -77,7 +78,7 @@ export function useNews(limit: number = 10): UseNewsReturn {
       };
       localStorage.setItem(CACHE_KEY, JSON.stringify(cacheData));
     } catch (err) {
-      console.warn('Error caching news data:', err);
+      console.warn('Error caching MarketAux news data:', err);
     }
   }, []);
 
@@ -96,7 +97,7 @@ export function useNews(limit: number = 10): UseNewsReturn {
         }
       }
 
-      const response = await fetch(`/api/news?limit=${limit}&language=en`);
+      const response = await fetch(`/api/news?limit=3&must_have_entities=false&sort=published_desc`);
       
       if (!response.ok) {
         throw new Error(`Failed to fetch news: ${response.statusText}`);
@@ -114,7 +115,7 @@ export function useNews(limit: number = 10): UseNewsReturn {
       }
     } catch (err) {
       setError(err instanceof Error ? err.message : 'An unknown error occurred');
-      console.error('Error fetching news:', err);
+      console.error('Error fetching MarketAux news:', err);
     } finally {
       setLoading(false);
     }

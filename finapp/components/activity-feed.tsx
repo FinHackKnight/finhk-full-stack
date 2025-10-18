@@ -4,6 +4,7 @@ import { Card } from "@/components/ui/card"
 import { ScrollArea } from "@/components/ui/scroll-area"
 import { Clock, TrendingUp, AlertCircle, RefreshCw, ExternalLink } from "lucide-react"
 import { useNews } from "@/lib/hooks/use-news"
+import type { NewsItem } from "@/lib/marketaux-news"
 import { Button } from "@/components/ui/button"
 
 // Helper function to get relative time
