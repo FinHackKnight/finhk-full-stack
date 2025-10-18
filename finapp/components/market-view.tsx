@@ -88,7 +88,7 @@ export function MarketView() {
   }
 
   async function handleFetch(
-    symbol: string,
+    symbol: string[],
     timeframe: "1D" | "1W" | "1M" | "3M"
   ) {
     try {
