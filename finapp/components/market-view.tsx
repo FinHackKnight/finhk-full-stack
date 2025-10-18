@@ -1,7 +1,7 @@
 "use client";
 
-import { useState } from "react";
-import { MarketChart } from "@/components/market-chart";
+import { useState, useEffect } from "react";
+import { MarketChart, MarketData } from "@/components/market-chart";
 import { MarketIndicators } from "@/components/market-indicators";
 import { EventImpactList } from "@/components/event-impact-list";
 import { Globe3D } from "@/components/globe-3d";
@@ -33,10 +33,26 @@ const nasdaqData = generateData(14200, 50);
 const dowData = generateData(35000, 100);
 
 export function MarketView() {
+  const [data, setData] = useState<MarketData[]>([]);
+  const [error, setError] = useState<string | null>(null);
   const [hoveredEventId, setHoveredEventId] = useState<string | null>(null);
   const [selectedEvent, setSelectedEvent] = useState<EventWithMarkets | null>(
     null
   );
+
+  async function handleFetch(symbol: string) {
+    try {
+      const res = await fetch(`/api/stocks?symbol=${symbol}&interval=daily`);
+      if (!res.ok) {
+        throw new Error(`HTTP ${res.status}: ${res.statusText}`);
+      }
+      const data = await res.json();
+      setData(data);
+    } catch (err) {
+      console.error("Fetch error:", err);
+      setError(err instanceof Error ? err.message : "Failed to fetch data");
+    }
+  }
 
   // Get recent events (last 10)
   const recentEvents = mockEventsWithMarkets.slice(0, 10);
@@ -51,6 +67,12 @@ export function MarketView() {
 
   return (
     <div className="h-full w-full overflow-auto bg-gradient-to-b from-background to-muted/20">
+      <button
+        onClick={() => handleFetch("AAPL")}
+        className="px-4 py-2 bg-green-500 text-white rounded cursor-pointer"
+      >
+        Test Click
+      </button>
       <div className="container mx-auto p-6 space-y-6">
         <div>
           <h2 className="text-2xl font-semibold mb-2">Market Overview</h2>
@@ -59,29 +81,31 @@ export function MarketView() {
           </p>
         </div>
 
-        <div className="grid grid-cols-1 lg:grid-cols-3 gap-4">
-          <MarketChart
-            title="S&P 500"
-            data={sp500Data}
-            change={45.23}
-            changePercent={1.02}
-            color="hsl(var(--chart-1))"
-          />
-          <MarketChart
-            title="NASDAQ"
-            data={nasdaqData}
-            change={-28.45}
-            changePercent={-0.2}
-            color="hsl(var(--chart-2))"
-          />
-          <MarketChart
-            title="DOW JONES"
-            data={dowData}
-            change={120.5}
-            changePercent={0.35}
-            color="hsl(var(--chart-3))"
-          />
-        </div>
+        {data && data.length > 0 && (
+          <div className="grid grid-cols-1 lg:grid-cols-3 gap-4">
+            <MarketChart
+              title="S&P 500"
+              data={data}
+              change={45.23}
+              changePercent={1.02}
+              color="hsl(var(--chart-1))"
+            />
+            <MarketChart
+              title="NASDAQ"
+              data={nasdaqData}
+              change={-28.45}
+              changePercent={-0.2}
+              color="hsl(var(--chart-2))"
+            />
+            <MarketChart
+              title="DOW JONES"
+              data={dowData}
+              change={120.5}
+              changePercent={0.35}
+              color="hsl(var(--chart-3))"
+            />
+          </div>
+        )}
 
         {/* Global Events Map Section */}
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
