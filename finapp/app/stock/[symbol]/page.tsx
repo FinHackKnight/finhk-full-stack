@@ -43,7 +43,6 @@ export default function StockProfilePage() {
   const [stockData, setStockData] = useState<StockData | null>(null)
   const [stockNews, setStockNews] = useState<StockNews[]>([])
   const [loading, setLoading] = useState(true)
-  const [activeTab, setActiveTab] = useState<"overview" | "news" | "analysis">("overview")
 
   useEffect(() => {
     if (symbol) {
@@ -170,235 +169,235 @@ export default function StockProfilePage() {
         </div>
       </div>
 
-      {/* Navigation Tabs */}
-      <div className="sticky top-16 z-30 bg-background/95 backdrop-blur-sm border-b border-border">
-        <div className="container mx-auto px-6">
-          <div className="flex gap-1">
-            {[
-              { id: "overview", label: "Overview", icon: BarChart3 },
-              { id: "news", label: "News", icon: Globe },
-              { id: "analysis", label: "Analysis", icon: Activity }
-            ].map((tab) => (
-              <button
-                key={tab.id}
-                onClick={() => setActiveTab(tab.id as any)}
-                className={`flex items-center gap-2 px-6 py-4 text-sm font-medium transition-colors border-b-2 ${
-                  activeTab === tab.id
-                    ? "text-primary border-primary"
-                    : "text-muted-foreground border-transparent hover:text-foreground"
-                }`}
-              >
-                <tab.icon className="w-4 h-4" />
-                {tab.label}
-              </button>
-            ))}
-          </div>
-        </div>
-      </div>
 
       {/* Main Content */}
       <div className="container mx-auto px-6 py-8">
-        {activeTab === "overview" && (
-          <div className="space-y-8">
-            {/* Key Metrics Grid */}
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
-              <Card className="p-6">
-                <div className="flex items-center gap-3 mb-4">
-                  <div className="w-10 h-10 rounded-lg bg-blue-500/10 flex items-center justify-center">
-                    <DollarSign className="w-5 h-5 text-blue-500" />
+        <div className="grid grid-cols-1 xl:grid-cols-3 gap-8">
+          {/* Left Column - Overview and News */}
+          <div className="xl:col-span-2 space-y-8">
+            {/* Overview Section */}
+            <div className="space-y-6">
+              <h2 className="text-2xl font-bold">Overview</h2>
+              
+              {/* Key Metrics Grid */}
+              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
+                <Card className="p-4">
+                  <div className="flex items-center gap-3 mb-3">
+                    <div className="w-8 h-8 rounded-lg bg-blue-500/10 flex items-center justify-center">
+                      <DollarSign className="w-4 h-4 text-blue-500" />
+                    </div>
+                    <div>
+                      <p className="text-xs text-muted-foreground">Market Cap</p>
+                      <p className="text-lg font-bold">{stockData ? formatNumber(stockData.marketCap) : "N/A"}</p>
+                    </div>
                   </div>
-                  <div>
-                    <p className="text-sm text-muted-foreground">Market Cap</p>
-                    <p className="text-2xl font-bold">{stockData ? formatNumber(stockData.marketCap) : "N/A"}</p>
-                  </div>
-                </div>
-              </Card>
+                </Card>
 
-              <Card className="p-6">
-                <div className="flex items-center gap-3 mb-4">
-                  <div className="w-10 h-10 rounded-lg bg-green-500/10 flex items-center justify-center">
-                    <BarChart3 className="w-5 h-5 text-green-500" />
+                <Card className="p-4">
+                  <div className="flex items-center gap-3 mb-3">
+                    <div className="w-8 h-8 rounded-lg bg-green-500/10 flex items-center justify-center">
+                      <BarChart3 className="w-4 h-4 text-green-500" />
+                    </div>
+                    <div>
+                      <p className="text-xs text-muted-foreground">P/E Ratio</p>
+                      <p className="text-lg font-bold">{stockData?.pe ? stockData.pe.toFixed(2) : "N/A"}</p>
+                    </div>
                   </div>
-                  <div>
-                    <p className="text-sm text-muted-foreground">P/E Ratio</p>
-                    <p className="text-2xl font-bold">{stockData?.pe ? stockData.pe.toFixed(2) : "N/A"}</p>
-                  </div>
-                </div>
-              </Card>
+                </Card>
 
-              <Card className="p-6">
-                <div className="flex items-center gap-3 mb-4">
-                  <div className="w-10 h-10 rounded-lg bg-purple-500/10 flex items-center justify-center">
-                    <Volume className="w-5 h-5 text-purple-500" />
+                <Card className="p-4">
+                  <div className="flex items-center gap-3 mb-3">
+                    <div className="w-8 h-8 rounded-lg bg-purple-500/10 flex items-center justify-center">
+                      <Volume className="w-4 h-4 text-purple-500" />
+                    </div>
+                    <div>
+                      <p className="text-xs text-muted-foreground">Volume</p>
+                      <p className="text-lg font-bold">{stockData ? formatNumber(stockData.volume) : "N/A"}</p>
+                    </div>
                   </div>
-                  <div>
-                    <p className="text-sm text-muted-foreground">Volume</p>
-                    <p className="text-2xl font-bold">{stockData ? formatNumber(stockData.volume) : "N/A"}</p>
-                  </div>
-                </div>
-              </Card>
+                </Card>
 
-              <Card className="p-6">
-                <div className="flex items-center gap-3 mb-4">
-                  <div className="w-10 h-10 rounded-lg bg-orange-500/10 flex items-center justify-center">
-                    <Target className="w-5 h-5 text-orange-500" />
+                <Card className="p-4">
+                  <div className="flex items-center gap-3 mb-3">
+                    <div className="w-8 h-8 rounded-lg bg-orange-500/10 flex items-center justify-center">
+                      <Target className="w-4 h-4 text-orange-500" />
+                    </div>
+                    <div>
+                      <p className="text-xs text-muted-foreground">52W High</p>
+                      <p className="text-lg font-bold">{stockData ? formatCurrency(stockData.high) : "N/A"}</p>
+                    </div>
                   </div>
-                  <div>
-                    <p className="text-sm text-muted-foreground">52W High</p>
-                    <p className="text-2xl font-bold">{stockData ? formatCurrency(stockData.high) : "N/A"}</p>
-                  </div>
-                </div>
-              </Card>
-            </div>
+                </Card>
+              </div>
 
-            {/* Company Information */}
-            <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
-              <Card className="p-6">
-                <h3 className="text-lg font-semibold mb-4">Company Information</h3>
-                <div className="space-y-3">
-                  <div className="flex justify-between">
-                    <span className="text-muted-foreground">Sector</span>
-                    <span className="font-medium">{stockData?.sector || "N/A"}</span>
-                  </div>
-                  <div className="flex justify-between">
-                    <span className="text-muted-foreground">Industry</span>
-                    <span className="font-medium">{stockData?.industry || "N/A"}</span>
-                  </div>
-                  <div className="flex justify-between">
-                    <span className="text-muted-foreground">Open</span>
-                    <span className="font-medium">{stockData ? formatCurrency(stockData.open) : "N/A"}</span>
-                  </div>
-                  <div className="flex justify-between">
-                    <span className="text-muted-foreground">Previous Close</span>
-                    <span className="font-medium">{stockData ? formatCurrency(stockData.previousClose) : "N/A"}</span>
-                  </div>
-                </div>
-              </Card>
-
-              <Card className="p-6">
-                <h3 className="text-lg font-semibold mb-4">Trading Information</h3>
-                <div className="space-y-3">
-                  <div className="flex justify-between">
-                    <span className="text-muted-foreground">Day High</span>
-                    <span className="font-medium text-green-500">{stockData ? formatCurrency(stockData.high) : "N/A"}</span>
-                  </div>
-                  <div className="flex justify-between">
-                    <span className="text-muted-foreground">Day Low</span>
-                    <span className="font-medium text-red-500">{stockData ? formatCurrency(stockData.low) : "N/A"}</span>
-                  </div>
-                  <div className="flex justify-between">
-                    <span className="text-muted-foreground">Change</span>
-                    <span className={`font-medium ${stockData?.change && stockData.change > 0 ? "text-green-500" : "text-red-500"}`}>
-                      {stockData ? formatCurrency(stockData.change) : "N/A"}
-                    </span>
-                  </div>
-                  <div className="flex justify-between">
-                    <span className="text-muted-foreground">Volume</span>
-                    <span className="font-medium">{stockData ? formatNumber(stockData.volume) : "N/A"}</span>
-                  </div>
-                </div>
-              </Card>
-            </div>
-          </div>
-        )}
-
-        {activeTab === "news" && (
-          <div className="space-y-6">
-            <div className="flex items-center justify-between">
-              <h2 className="text-2xl font-bold">Latest News</h2>
-              <Badge variant="outline" className="text-sm">
-                {stockNews.length} articles
-              </Badge>
-            </div>
-            
-            {stockNews && stockNews.length > 0 ? (
+              {/* Company Information */}
               <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-                {stockNews.map((news, index) => (
-                  <Card key={news.id || `news-${index}`} className="p-6 hover:shadow-lg transition-shadow">
-                    <div className="space-y-4">
-                      <div className="flex items-start justify-between gap-3">
-                        <div className="flex-1 min-w-0">
-                          <div className="flex items-center gap-2 mb-3">
-                            <Badge 
-                              variant="secondary" 
-                              className={`text-xs ${getSentimentColor(news.sentiment)}`}
-                            >
-                              <span className="flex items-center gap-1">
-                                {getSentimentIcon(news.sentiment)}
-                                {news.sentiment}
+                <Card className="p-6">
+                  <h3 className="text-lg font-semibold mb-4">Company Information</h3>
+                  <div className="space-y-3">
+                    <div className="flex justify-between">
+                      <span className="text-muted-foreground">Sector</span>
+                      <span className="font-medium">{stockData?.sector || "N/A"}</span>
+                    </div>
+                    <div className="flex justify-between">
+                      <span className="text-muted-foreground">Industry</span>
+                      <span className="font-medium">{stockData?.industry || "N/A"}</span>
+                    </div>
+                    <div className="flex justify-between">
+                      <span className="text-muted-foreground">Open</span>
+                      <span className="font-medium">{stockData ? formatCurrency(stockData.open) : "N/A"}</span>
+                    </div>
+                    <div className="flex justify-between">
+                      <span className="text-muted-foreground">Previous Close</span>
+                      <span className="font-medium">{stockData ? formatCurrency(stockData.previousClose) : "N/A"}</span>
+                    </div>
+                  </div>
+                </Card>
+
+                <Card className="p-6">
+                  <h3 className="text-lg font-semibold mb-4">Trading Information</h3>
+                  <div className="space-y-3">
+                    <div className="flex justify-between">
+                      <span className="text-muted-foreground">Day High</span>
+                      <span className="font-medium text-green-500">{stockData ? formatCurrency(stockData.high) : "N/A"}</span>
+                    </div>
+                    <div className="flex justify-between">
+                      <span className="text-muted-foreground">Day Low</span>
+                      <span className="font-medium text-red-500">{stockData ? formatCurrency(stockData.low) : "N/A"}</span>
+                    </div>
+                    <div className="flex justify-between">
+                      <span className="text-muted-foreground">Change</span>
+                      <span className={`font-medium ${stockData?.change && stockData.change > 0 ? "text-green-500" : "text-red-500"}`}>
+                        {stockData ? formatCurrency(stockData.change) : "N/A"}
+                      </span>
+                    </div>
+                    <div className="flex justify-between">
+                      <span className="text-muted-foreground">Volume</span>
+                      <span className="font-medium">{stockData ? formatNumber(stockData.volume) : "N/A"}</span>
+                    </div>
+                  </div>
+                </Card>
+              </div>
+            </div>
+
+            {/* News Section */}
+            <div className="space-y-6">
+              <div className="flex items-center justify-between">
+                <h2 className="text-2xl font-bold">Related News</h2>
+                <Badge variant="outline" className="text-sm">
+                  {stockNews.length} articles
+                </Badge>
+              </div>
+              
+              {stockNews && stockNews.length > 0 ? (
+                <div className="space-y-4">
+                  {stockNews.map((news, index) => (
+                    <Card key={news.id || `news-${index}`} className="p-6 hover:shadow-lg transition-shadow">
+                      <div className="space-y-3">
+                        <div className="flex items-start justify-between gap-3">
+                          <div className="flex-1 min-w-0">
+                            <div className="flex items-center gap-2 mb-2">
+                              <Badge 
+                                variant="secondary" 
+                                className={`text-xs ${getSentimentColor(news.sentiment)}`}
+                              >
+                                <span className="flex items-center gap-1">
+                                  {getSentimentIcon(news.sentiment)}
+                                  {news.sentiment}
+                                </span>
+                              </Badge>
+                              <span className="text-xs text-muted-foreground">
+                                {new Date(news.publishedAt).toLocaleDateString()}
                               </span>
-                            </Badge>
-                            <span className="text-xs text-muted-foreground">
-                              {new Date(news.publishedAt).toLocaleDateString()}
-                            </span>
-                          </div>
-                          <h3 className="font-semibold text-lg mb-2 line-clamp-2">{news.title}</h3>
-                          {news.description && (
-                            <p className="text-muted-foreground mb-3 line-clamp-3">
-                              {news.description}
-                            </p>
-                          )}
-                          <div className="flex items-center gap-2 text-sm text-muted-foreground">
-                            <span>{news.source}</span>
-                            <ExternalLink className="w-4 h-4" />
+                            </div>
+                            <h3 className="font-semibold text-lg mb-2 line-clamp-2">{news.title}</h3>
+                            {news.description && (
+                              <p className="text-muted-foreground mb-3 line-clamp-2">
+                                {news.description}
+                              </p>
+                            )}
+                            <div className="flex items-center gap-2 text-sm text-muted-foreground">
+                              <span>{news.source}</span>
+                              <ExternalLink className="w-4 h-4" />
+                            </div>
                           </div>
                         </div>
                       </div>
-                    </div>
-                  </Card>
-                ))}
-              </div>
-            ) : (
-              <Card className="p-12 text-center">
-                <Globe className="w-12 h-12 mx-auto mb-4 text-muted-foreground opacity-50" />
-                <h3 className="text-lg font-semibold mb-2">No News Available</h3>
-                <p className="text-muted-foreground">No recent news found for this stock.</p>
-              </Card>
-            )}
+                    </Card>
+                  ))}
+                </div>
+              ) : (
+                <Card className="p-12 text-center">
+                  <Globe className="w-12 h-12 mx-auto mb-4 text-muted-foreground opacity-50" />
+                  <h3 className="text-lg font-semibold mb-2">No News Available</h3>
+                  <p className="text-muted-foreground">No recent news found for this stock.</p>
+                </Card>
+              )}
+            </div>
           </div>
-        )}
 
-        {activeTab === "analysis" && (
-          <div className="space-y-8">
-            <h2 className="text-2xl font-bold">Technical Analysis</h2>
-            
-            <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
-              <Card className="p-8 text-center">
-                <BarChart3 className="w-16 h-16 mx-auto mb-4 text-muted-foreground opacity-50" />
-                <h3 className="text-lg font-semibold mb-2">Price Charts</h3>
-                <p className="text-muted-foreground">Interactive price charts and technical indicators will be available soon.</p>
+          {/* Right Column - Analysis */}
+          <div className="xl:col-span-1">
+            <div className="space-y-6">
+              <h2 className="text-2xl font-bold">Analysis</h2>
+              
+              <Card className="p-6">
+                <h3 className="text-lg font-semibold mb-4">Technical Analysis</h3>
+                <div className="space-y-4">
+                  <div className="text-center p-4 bg-muted/50 rounded-lg">
+                    <BarChart3 className="w-12 h-12 mx-auto mb-3 text-muted-foreground opacity-50" />
+                    <p className="text-sm text-muted-foreground">Price charts coming soon</p>
+                  </div>
+                  
+                  <div className="text-center p-4 bg-muted/50 rounded-lg">
+                    <Activity className="w-12 h-12 mx-auto mb-3 text-muted-foreground opacity-50" />
+                    <p className="text-sm text-muted-foreground">AI analysis coming soon</p>
+                  </div>
+                </div>
               </Card>
 
-              <Card className="p-8 text-center">
-                <Activity className="w-16 h-16 mx-auto mb-4 text-muted-foreground opacity-50" />
-                <h3 className="text-lg font-semibold mb-2">Market Analysis</h3>
-                <p className="text-muted-foreground">AI-powered market analysis and predictions coming soon.</p>
+              <Card className="p-6">
+                <h3 className="text-lg font-semibold mb-4">Key Metrics</h3>
+                <div className="space-y-4">
+                  <div className="flex justify-between items-center p-3 bg-muted/30 rounded-lg">
+                    <span className="text-sm text-muted-foreground">1D Change</span>
+                    <span className="font-semibold text-green-500">+2.3%</span>
+                  </div>
+                  <div className="flex justify-between items-center p-3 bg-muted/30 rounded-lg">
+                    <span className="text-sm text-muted-foreground">P/E Ratio</span>
+                    <span className="font-semibold text-blue-500">28.5</span>
+                  </div>
+                  <div className="flex justify-between items-center p-3 bg-muted/30 rounded-lg">
+                    <span className="text-sm text-muted-foreground">Volume</span>
+                    <span className="font-semibold text-purple-500">1.2B</span>
+                  </div>
+                  <div className="flex justify-between items-center p-3 bg-muted/30 rounded-lg">
+                    <span className="text-sm text-muted-foreground">Current Price</span>
+                    <span className="font-semibold text-orange-500">$175.43</span>
+                  </div>
+                </div>
+              </Card>
+
+              <Card className="p-6">
+                <h3 className="text-lg font-semibold mb-4">Market Sentiment</h3>
+                <div className="space-y-3">
+                  <div className="flex justify-between">
+                    <span className="text-sm text-muted-foreground">Overall</span>
+                    <Badge variant="secondary" className="bg-green-100 text-green-700">Bullish</Badge>
+                  </div>
+                  <div className="flex justify-between">
+                    <span className="text-sm text-muted-foreground">Score</span>
+                    <span className="font-semibold">72/100</span>
+                  </div>
+                  <div className="flex justify-between">
+                    <span className="text-sm text-muted-foreground">Fear & Greed</span>
+                    <span className="font-semibold text-orange-500">68</span>
+                  </div>
+                </div>
               </Card>
             </div>
-
-            <Card className="p-8">
-              <h3 className="text-lg font-semibold mb-4">Key Metrics</h3>
-              <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-                <div className="text-center p-4 bg-muted/50 rounded-lg">
-                  <div className="text-2xl font-bold text-green-500">+2.3%</div>
-                  <div className="text-sm text-muted-foreground">1D Change</div>
-                </div>
-                <div className="text-center p-4 bg-muted/50 rounded-lg">
-                  <div className="text-2xl font-bold text-blue-500">28.5</div>
-                  <div className="text-sm text-muted-foreground">P/E Ratio</div>
-                </div>
-                <div className="text-center p-4 bg-muted/50 rounded-lg">
-                  <div className="text-2xl font-bold text-purple-500">1.2B</div>
-                  <div className="text-sm text-muted-foreground">Volume</div>
-                </div>
-                <div className="text-center p-4 bg-muted/50 rounded-lg">
-                  <div className="text-2xl font-bold text-orange-500">$175.43</div>
-                  <div className="text-sm text-muted-foreground">Current Price</div>
-                </div>
-              </div>
-            </Card>
           </div>
-        )}
+        </div>
       </div>
     </div>
   )
