@@ -5,6 +5,7 @@ import { Input } from "@/components/ui/input"
 import { Button } from "@/components/ui/button"
 import { Badge } from "@/components/ui/badge"
 import { Card } from "@/components/ui/card"
+import { Loader2 } from "lucide-react"
 
 interface Article {
   uuid: string
@@ -114,7 +115,10 @@ export function DashboardView() {
           <div className="text-sm text-red-500">{error}</div>
         )}
         {loading && (
-          <div className="text-sm text-muted-foreground">Loading news…</div>
+          <div className="flex items-center text-sm text-muted-foreground">
+            <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+            Loading news…
+          </div>
         )}
 
         {/* Articles list */}
