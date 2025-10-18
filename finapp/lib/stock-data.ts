@@ -103,6 +103,22 @@ const mockStockData: Record<string, StockQuote> = {
     low: 246.30,
     open: 251.20,
     previousClose: 253.70
+  },
+  'NVDA': {
+    symbol: 'NVDA',
+    name: 'NVIDIA Corporation',
+    price: 875.28,
+    change: 12.45,
+    changePercent: 1.44,
+    volume: 45678900,
+    marketCap: 2150000000000,
+    pe: 65.8,
+    sector: 'Technology',
+    industry: 'Semiconductors',
+    high: 880.15,
+    low: 870.20,
+    open: 875.50,
+    previousClose: 862.83
   }
 }
 
@@ -146,6 +162,36 @@ const mockNewsData: StockNewsItem[] = [
     url: 'https://example.com/news/4',
     sentiment: 'negative',
     symbols: ['TSLA']
+  },
+  {
+    id: '5',
+    title: 'NVIDIA AI Chip Demand Surges',
+    description: 'NVIDIA reports record demand for its AI and data center chips, driving strong revenue growth.',
+    publishedAt: '2024-01-16T09:30:00Z',
+    source: 'TechCrunch',
+    url: 'https://example.com/news/5',
+    sentiment: 'positive',
+    symbols: ['NVDA']
+  },
+  {
+    id: '6',
+    title: 'NVIDIA Partners with Major Cloud Providers',
+    description: 'NVIDIA announces new partnerships with major cloud providers to expand AI infrastructure.',
+    publishedAt: '2024-01-15T11:45:00Z',
+    source: 'Reuters',
+    url: 'https://example.com/news/6',
+    sentiment: 'positive',
+    symbols: ['NVDA']
+  },
+  {
+    id: '7',
+    title: 'NVIDIA Gaming Revenue Growth',
+    description: 'NVIDIA reports strong gaming segment performance with new RTX series adoption.',
+    publishedAt: '2024-01-14T16:20:00Z',
+    source: 'Bloomberg',
+    url: 'https://example.com/news/7',
+    sentiment: 'positive',
+    symbols: ['NVDA']
   }
 ]
 

@@ -7,6 +7,7 @@ import { Card } from "@/components/ui/card"
 import { Badge } from "@/components/ui/badge"
 import { Button } from "@/components/ui/button"
 import { ScrollArea } from "@/components/ui/scroll-area"
+import { AIAnalysis } from "@/components/ai-analysis"
 
 interface StockData {
   symbol: string
@@ -54,10 +55,14 @@ export default function StockProfilePage() {
   const fetchStockData = async () => {
     setLoading(true)
     try {
+      console.log('Fetching stock data for:', symbol)
       const response = await fetch(`/api/stocks/quote?symbols=${symbol}`)
       const result = await response.json()
+      console.log('Stock data response:', result)
       if (result.success && result.data) {
         setStockData(result.data)
+      } else {
+        console.error('Failed to fetch stock data:', result.error)
       }
     } catch (error) {
       console.error("Failed to fetch stock data:", error)
@@ -68,10 +73,14 @@ export default function StockProfilePage() {
 
   const fetchStockNews = async () => {
     try {
+      console.log('Fetching news for:', symbol)
       const response = await fetch(`/api/stocks/news?symbols=${symbol}&limit=20`)
       const result = await response.json()
+      console.log('News response:', result)
       if (result.success && result.data) {
         setStockNews(result.data)
+      } else {
+        console.error('Failed to fetch news:', result.error)
       }
     } catch (error) {
       console.error("Failed to fetch stock news:", error)
@@ -171,7 +180,7 @@ export default function StockProfilePage() {
       {/* Main Content */}
       <div className="flex-1 flex pt-16">
         {/* Left Column - Overview and News */}
-        <div className="w-2/3 border-r border-border/50 bg-card/30 backdrop-blur-sm flex flex-col">
+        <div className="w-1/2 border-r border-border/50 bg-card/30 backdrop-blur-sm flex flex-col">
           <ScrollArea className="flex-1">
             <div className="p-4 space-y-6">
             {/* Overview Section */}
@@ -318,67 +327,12 @@ export default function StockProfilePage() {
         </div>
 
         {/* Right Column - Analysis */}
-        <div className="w-1/3 bg-card/30 backdrop-blur-sm flex flex-col">
-          <ScrollArea className="flex-1">
-            <div className="p-4 space-y-6">
-              <h2 className="text-xl font-semibold">Analysis</h2>
-              
-              <div className="p-4 rounded-lg bg-muted/20 border border-border/50">
-                <h3 className="text-sm font-semibold mb-3">Technical Analysis</h3>
-                <div className="space-y-3">
-                  <div className="text-center p-3 bg-muted/30 rounded-lg">
-                    <BarChart3 className="w-8 h-8 mx-auto mb-2 text-muted-foreground opacity-50" />
-                    <p className="text-xs text-muted-foreground">Price charts coming soon</p>
-                  </div>
-                  
-                  <div className="text-center p-3 bg-muted/30 rounded-lg">
-                    <Activity className="w-8 h-8 mx-auto mb-2 text-muted-foreground opacity-50" />
-                    <p className="text-xs text-muted-foreground">AI analysis coming soon</p>
-                  </div>
-                </div>
-              </div>
-
-              <div className="p-4 rounded-lg bg-muted/20 border border-border/50">
-                <h3 className="text-sm font-semibold mb-3">Key Metrics</h3>
-                <div className="space-y-2">
-                  <div className="flex justify-between items-center p-2 bg-muted/30 rounded">
-                    <span className="text-xs text-muted-foreground">1D Change</span>
-                    <span className="font-semibold text-green-500 text-sm">+2.3%</span>
-                  </div>
-                  <div className="flex justify-between items-center p-2 bg-muted/30 rounded">
-                    <span className="text-xs text-muted-foreground">P/E Ratio</span>
-                    <span className="font-semibold text-blue-500 text-sm">28.5</span>
-                  </div>
-                  <div className="flex justify-between items-center p-2 bg-muted/30 rounded">
-                    <span className="text-xs text-muted-foreground">Volume</span>
-                    <span className="font-semibold text-purple-500 text-sm">1.2B</span>
-                  </div>
-                  <div className="flex justify-between items-center p-2 bg-muted/30 rounded">
-                    <span className="text-xs text-muted-foreground">Current Price</span>
-                    <span className="font-semibold text-orange-500 text-sm">$175.43</span>
-                  </div>
-                </div>
-              </div>
-
-              <div className="p-4 rounded-lg bg-muted/20 border border-border/50">
-                <h3 className="text-sm font-semibold mb-3">Market Sentiment</h3>
-                <div className="space-y-2">
-                  <div className="flex justify-between text-sm">
-                    <span className="text-muted-foreground">Overall</span>
-                    <Badge variant="secondary" className="bg-green-100 text-green-700 text-xs">Bullish</Badge>
-                  </div>
-                  <div className="flex justify-between text-sm">
-                    <span className="text-muted-foreground">Score</span>
-                    <span className="font-semibold">72/100</span>
-                  </div>
-                  <div className="flex justify-between text-sm">
-                    <span className="text-muted-foreground">Fear & Greed</span>
-                    <span className="font-semibold text-orange-500">68</span>
-                  </div>
-                </div>
-              </div>
-            </div>
-          </ScrollArea>
+        <div className="w-1/2 bg-card/30 backdrop-blur-sm flex flex-col">
+          <div className="p-4 flex flex-col h-full">
+            <h2 className="text-xl font-semibold mb-4">AI Analysis</h2>
+            
+            <AIAnalysis symbol={symbol} stockData={stockData} />
+          </div>
         </div>
       </div>
     </div>
