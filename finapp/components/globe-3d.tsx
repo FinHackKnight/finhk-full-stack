@@ -1,6 +1,6 @@
-"use client"
+"use client";
 
-import { useRef, useState, useMemo} from "react"
+import { useRef, useState, useMemo, Effect} from "react"
 import { Canvas, useFrame, useLoader } from "@react-three/fiber"
 import { OrbitControls } from "@react-three/drei"
 import { TextureLoader } from "three"
@@ -8,83 +8,97 @@ import * as THREE from "three"
 import type { EventWithMarkets } from "@/lib/mock-data"
 
 interface LocationPinProps {
-  event: EventWithMarkets
-  hoveredEventId: string | null
-  onHover: (eventId: string | null) => void
-  onClick: (event: EventWithMarkets) => void
+  event: EventWithMarkets;
+  hoveredEventId: string | null;
+  onHover: (eventId: string | null) => void;
+  onClick: (event: EventWithMarkets) => void;
 }
 
-function latLngToPosition(lat: number, lng: number, radius: number): [number, number, number] {
-  const phi = (90 - lat) * (Math.PI / 180)
-  const theta = (lng + 180) * (Math.PI / 180)
+function latLngToPosition(
+  lat: number,
+  lng: number,
+  radius: number
+): [number, number, number] {
+  const phi = (90 - lat) * (Math.PI / 180);
+  const theta = (lng + 180) * (Math.PI / 180);
 
-  const x = -(radius * Math.sin(phi) * Math.cos(theta))
-  const z = radius * Math.sin(phi) * Math.sin(theta)
-  const y = radius * Math.cos(phi)
+  const x = -(radius * Math.sin(phi) * Math.cos(theta));
+  const z = radius * Math.sin(phi) * Math.sin(theta);
+  const y = radius * Math.cos(phi);
 
-  return [x, y, z]
+  return [x, y, z];
 }
 
-function LocationPin({ event, hoveredEventId, onHover, onClick }: LocationPinProps) {
-  const groupRef = useRef<THREE.Group>(null)
-  const glowRef = useRef<THREE.Mesh>(null)
-  const [pinHovered, setPinHovered] = useState(false)
+function LocationPin({
+  event,
+  hoveredEventId,
+  onHover,
+  onClick,
+}: LocationPinProps) {
+  const groupRef = useRef<THREE.Group>(null);
+  const glowRef = useRef<THREE.Mesh>(null);
+  const [pinHovered, setPinHovered] = useState(false);
 
-  const isHighlighted = pinHovered || hoveredEventId === event.id
+  const isHighlighted = pinHovered || hoveredEventId === event.id;
 
   const impactColors = {
     low: "#10b981",
     medium: "#f59e0b",
     high: "#ef4444",
-  }
+  };
 
-  const position = latLngToPosition(event.location.lat, event.location.lng, 2.08)
-  const color = impactColors[event.impactLevel]
+  const position = latLngToPosition(
+    event.location.lat,
+    event.location.lng,
+    2.08
+  );
+  const color = impactColors[event.impactLevel];
 
-  // Keep pins oriented correctly while the globe rotates
-  useFrame((state, delta) => {
-    if (groupRef.current) {
-      // Make pins face the camera
-      groupRef.current.lookAt(state.camera.position)
-      groupRef.current.rotateX(Math.PI)
-    }
+  const pinGeometry = useMemo(() => {
+    const shape = new THREE.Shape();
+    shape.moveTo(0, 0);
+    shape.bezierCurveTo(0, -0.05, 0.05, -0.08, 0.05, -0.12);
+    shape.bezierCurveTo(0.05, -0.16, 0, -0.2, 0, -0.2);
+    shape.bezierCurveTo(0, -0.2, -0.05, -0.16, -0.05, -0.12);
+    shape.bezierCurveTo(-0.05, -0.08, 0, -0.05, 0, 0);
 
-    // Glow effect for highlighted pins
-    if (glowRef.current && isHighlighted) {
-      glowRef.current.scale.setScalar(1 + Math.sin(Date.now() * 0.005) * 0.2)
-    }
-  })
+    const extrudeSettings = {
+      depth: 0.02,
+      bevelEnabled: true,
+      bevelThickness: 0.005,
+      bevelSize: 0.005,
+      bevelSegments: 3,
+    };
 
-  // Create pin geometry
-  const pinBaseGeometry = useMemo(() => new THREE.CylinderGeometry(0.02, 0.02, 0.1, 16), [])
-  const pinHeadGeometry = useMemo(() => new THREE.SphereGeometry(0.04, 16, 16), [])
+    return new THREE.ExtrudeGeometry(shape, extrudeSettings);
+  }, []);
 
   useFrame(() => {
     if (groupRef.current) {
-      groupRef.current.lookAt(0, 0, 0)
-      groupRef.current.rotateX(Math.PI)
+      groupRef.current.lookAt(0, 0, 0);
+      groupRef.current.rotateX(Math.PI);
     }
 
     if (glowRef.current && isHighlighted) {
-      glowRef.current.scale.setScalar(1 + Math.sin(Date.now() * 0.005) * 0.2)
+      glowRef.current.scale.setScalar(1 + Math.sin(Date.now() * 0.005) * 0.2);
     }
-  })
+  });
 
   const handlePointerOver = (e: any) => {
-    e.stopPropagation()
-    setPinHovered(true)
-    onHover(event.id)
-  }
+    e.stopPropagation();
+    setPinHovered(true);
+    onHover(event.id);
+  };
 
   const handlePointerOut = () => {
-    setPinHovered(false)
-    onHover(null)
-  }
+    setPinHovered(false);
+    onHover(null);
+  };
 
   const handleClick = (e: any) => {
-    e.stopPropagation()
-    onClick(event)
-  }
+    e.stopPropagation();
+    onClick(event);
+  };
 
   return (
     <group 
@@ -103,56 +117,33 @@ function LocationPin({ event, hoveredEventId, onHover, onClick }: LocationPinPro
           roughness={0.4}
         />
       </mesh>
-
-      {/* Pin head */}
-      <group position={[0, 0.18, 0]}>
-        {/* Main sphere */}
-        <mesh>
-          <sphereGeometry args={[0.05, 16, 16]} />
-          <meshStandardMaterial
-            color={color}
-            emissive={color}
-            emissiveIntensity={isHighlighted ? 0.6 : 0.2}
-            metalness={0.5}
-            roughness={0.3}
-          />
-        </mesh>
-
-        {/* Inner glow */}
-        <mesh scale={0.8}>
-          <sphereGeometry args={[0.05, 16, 16]} />
-          <meshBasicMaterial
-            color="#ffffff"
-            transparent
-            opacity={isHighlighted ? 0.4 : 0.2}
-          />
-        </mesh>
-
-        {/* Outer glow effect */}
-        {isHighlighted && (
-          <>
-            <mesh ref={glowRef}>
-              <sphereGeometry args={[0.08, 16, 16]} />
-              <meshBasicMaterial
-                color={color}
-                transparent
-                opacity={0.3}
-              />
-            </mesh>
-            <mesh>
-              <ringGeometry args={[0.09, 0.12, 32]} />
-              <meshBasicMaterial
-                color={color}
-                transparent
-                opacity={0.2}
-                side={THREE.DoubleSide}
-              />
-            </mesh>
-          </>
-        )}
-      </group>
+      <mesh position={[0, -0.1, 0.02]}>
+        <sphereGeometry args={[0.02, 16, 16]} />
+        <meshStandardMaterial
+          color="#ffffff"
+          emissive="#ffffff"
+          emissiveIntensity={0.5}
+        />
+      </mesh>
+      {isHighlighted && (
+        <>
+          <mesh ref={glowRef} position={[0, -0.1, 0]}>
+            <sphereGeometry args={[0.08, 16, 16]} />
+            <meshBasicMaterial color={color} transparent opacity={0.3} />
+          </mesh>
+          <mesh position={[0, -0.1, 0]}>
+            <ringGeometry args={[0.08, 0.12, 32]} />
+            <meshBasicMaterial
+              color={color}
+              transparent
+              opacity={0.2}
+              side={THREE.DoubleSide}
+            />
+          </mesh>
+        </>
+      )}
     </group>
-  )
+  );
 }
 
 function RealisticGlobe({
@@ -161,26 +152,119 @@ function RealisticGlobe({
   onHover,
   onEventClick,
 }: {
-  events: EventWithMarkets[]
-  hoveredEventId: string | null
-  onHover: (eventId: string | null) => void
-  onEventClick: (event: EventWithMarkets) => void
+  events: EventWithMarkets[];
+  hoveredEventId: string | null;
+  onHover: (eventId: string | null) => void;
+  onEventClick: (event: EventWithMarkets) => void;
 }) {
-  const groupRef = useRef<THREE.Group>(null)
-  const meshRef = useRef<THREE.Mesh>(null)
-  const [isHovered, setIsHovered] = useState(false)
+  const groupRef = useRef<THREE.Group>(null);
+  const cloudsRef = useRef<THREE.Mesh>(null);
 
-  // Load the Earth texture
-  const earthTexture = useLoader(TextureLoader, "/assets/3d/texture_earth.jpg")
-
-  // Rotate the Earth unless a pin is hovered
-  useFrame((state, delta) => {
-    if (groupRef.current && !hoveredEventId) {
-      // Normal rotation when no pin is hovered
-      groupRef.current.rotation.y += delta * 0.1
+  useFrame(() => {
+    if (groupRef.current) {
+      groupRef.current.rotation.y += 0.0003;
     }
-    // No rotation when a pin is hovered (complete stop)
-  })
+    if (cloudsRef.current) {
+      cloudsRef.current.rotation.y += 0.0001;
+    }
+  });
+
+  const [earthTexture, setEarthTexture] = useState<THREE.Texture | null>(null);
+  const [bumpTexture, setBumpTexture] = useState<THREE.Texture | null>(null);
+  const [specularTexture, setSpecularTexture] = useState<THREE.Texture | null>(
+    null
+  );
+
+  useEffect(() => {
+    let mounted = true;
+    const loader = new THREE.TextureLoader();
+
+    loader.load(
+      "/photo-realistic-earth-satellite-view-natural-earth.jpg",
+      (tex) => {
+        if (!mounted) return;
+        try {
+          // colorSpace may not exist on older three types — guard it
+          // @ts-ignore
+          tex.colorSpace = THREE.SRGBColorSpace;
+        } catch {}
+        tex.anisotropy = rendererCapabilitiesAnisotropy();
+        setEarthTexture(tex);
+      },
+      undefined,
+      (err) => {
+        console.warn("Could not load earth texture:", err);
+      }
+    );
+
+    loader.load(
+      "/earth-terrain-elevation-bump-map-grayscale-topogra.jpg",
+      (tex) => {
+        if (!mounted) return;
+        tex.anisotropy = rendererCapabilitiesAnisotropy();
+        setBumpTexture(tex);
+      },
+      undefined,
+      (err) => {
+        console.warn("Could not load bump texture:", err);
+      }
+    );
+
+    loader.load(
+      "/earth-ocean-water-specular-map-white-oceans-black-.jpg",
+      (tex) => {
+        if (!mounted) return;
+        tex.anisotropy = rendererCapabilitiesAnisotropy();
+        setSpecularTexture(tex);
+      },
+      undefined,
+      (err) => {
+        console.warn("Could not load specular texture:", err);
+      }
+    );
+
+    return () => {
+      mounted = false;
+    };
+  }, []);
+
+  // helper to avoid accessing renderer directly; provide a conservative default
+  function rendererCapabilitiesAnisotropy() {
+    try {
+      // attempt to read maxAnisotropy from a temporary renderer if available
+      // fall back to a reasonable default
+      return 16;
+    } catch {
+      return 1;
+    }
+  }
+
+  const cloudTexture = useMemo(() => {
+    if (typeof window === "undefined") return null;
+
+    const canvas = document.createElement("canvas");
+    canvas.width = 2048;
+    canvas.height = 1024;
+    const ctx = canvas.getContext("2d");
+    if (!ctx) return null;
+
+    ctx.fillStyle = "rgba(0, 0, 0, 0)";
+    ctx.fillRect(0, 0, canvas.width, canvas.height);
+
+    for (let i = 0; i < 400; i++) {
+      const x = Math.random() * canvas.width;
+      const y = Math.random() * canvas.height;
+      const radius = Math.random() * 50 + 20;
+      const gradient = ctx.createRadialGradient(x, y, 0, x, y, radius);
+      gradient.addColorStop(0, "rgba(255, 255, 255, 0.7)");
+      gradient.addColorStop(0.5, "rgba(255, 255, 255, 0.4)");
+      gradient.addColorStop(1, "rgba(255, 255, 255, 0)");
+      ctx.fillStyle = gradient;
+      ctx.fillRect(x - radius, y - radius, radius * 2, radius * 2);
+    }
+
+    return new THREE.CanvasTexture(canvas);
+  }, []);
 
   return (
     <group 
@@ -197,6 +281,28 @@ function RealisticGlobe({
         />
       </mesh>
 
+      {/* Cloud layer */}
+      <mesh ref={cloudsRef} scale={2.015}>
+        <sphereGeometry args={[2, 64, 64]} />
+        <meshStandardMaterial
+          map={cloudTexture || undefined}
+          transparent
+          opacity={0.4}
+          depthWrite={false}
+        />
+      </mesh>
+
+      {/* Atmospheric glow */}
+      <mesh scale={2.15}>
+        <sphereGeometry args={[2, 64, 64]} />
+        <meshBasicMaterial
+          color="#4a90e2"
+          transparent
+          opacity={0.1}
+          side={THREE.BackSide}
+        />
+      </mesh>
+
       {events.map((event) => (
         <LocationPin
           key={event.id}
@@ -207,22 +313,32 @@ function RealisticGlobe({
         />
       ))}
     </group>
-  )
+  );
 }
 
 interface Globe3DProps {
-  events: EventWithMarkets[]
-  hoveredEventId: string | null
-  onEventHover: (eventId: string | null) => void
-  onEventClick: (event: EventWithMarkets) => void
+  events: EventWithMarkets[];
+  hoveredEventId: string | null;
+  onEventHover: (eventId: string | null) => void;
+  onEventClick: (event: EventWithMarkets) => void;
 }
 
-export function Globe3D({ events, hoveredEventId, onEventHover, onEventClick }: Globe3DProps) {
+export function Globe3D({
+  events,
+  hoveredEventId,
+  onEventHover,
+  onEventClick,
+}: Globe3DProps) {
   return (
     <div className="w-full h-full">
       <Canvas camera={{ position: [0, 0, 3], fov: 45 }}>
         <ambientLight intensity={0.3} />
-        <directionalLight position={[5, 3, 5]} intensity={1.5} />
+        <directionalLight
+          position={[5, 3, 5]}
+          intensity={1.2}
+          color="#ffffff"
+        />
+        <pointLight position={[-5, -3, -5]} intensity={0.3} color="#4a90e2" />
         <RealisticGlobe
           events={events}
           hoveredEventId={hoveredEventId}
@@ -240,5 +356,5 @@ export function Globe3D({ events, hoveredEventId, onEventHover, onEventClick }: 
         />
       </Canvas>
     </div>
-  )
+  );
 }
