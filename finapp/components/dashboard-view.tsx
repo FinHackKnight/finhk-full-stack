@@ -1,112 +1,163 @@
 "use client"
 
-import { StatsOverview } from "@/components/stats-overview"
-import { ActivityFeed } from "@/components/activity-feed"
-import { MarketChart } from "@/components/market-chart"
-import { EventImpactList } from "@/components/event-impact-list"
-import { GeminiChat } from "@/components/gemini-chat"
-import { TrendingUp, Globe, Activity, AlertTriangle } from "lucide-react"
+import { useEffect, useMemo, useState } from "react"
+import { Input } from "@/components/ui/input"
+import { Button } from "@/components/ui/button"
+import { Badge } from "@/components/ui/badge"
+import { Card } from "@/components/ui/card"
+import { Loader2 } from "lucide-react"
 
-// Generate sample data
-const generateData = (base: number, volatility: number, points = 24) => {
-  const data = []
-  let value = base
-  for (let i = 0; i < points; i++) {
-    value += (Math.random() - 0.5) * volatility
-    data.push({
-      time: `${i}:00`,
-      value: value,
-    })
-  }
-  return data
+interface Article {
+  uuid: string
+  title: string
+  description?: string
+  url: string
+  published_at: string
+  source: string // treat as author/source
+  category: string // used as industry tag
+  image_url?: string
 }
 
-const globalIndexData = generateData(3200, 15)
-
 export function DashboardView() {
+  const [articles, setArticles] = useState<Article[]>([])
+  const [loading, setLoading] = useState(false)
+  const [error, setError] = useState<string | null>(null)
+  const [query, setQuery] = useState("")
+  const [industry, setIndustry] = useState<string>("All")
+
+  useEffect(() => {
+    let cancelled = false
+    async function load() {
+      try {
+        setLoading(true)
+        setError(null)
+        const res = await fetch(`/api/news?limit=50`)
+        if (!res.ok) {
+          const text = await res.text().catch(() => "")
+          throw new Error(`HTTP ${res.status} ${res.statusText} ${text}`)
+        }
+        const json = await res.json()
+        if (!cancelled) {
+          const items: Article[] = Array.isArray(json?.data) ? json.data : []
+          setArticles(items)
+        }
+      } catch (e: any) {
+        if (!cancelled) setError(e?.message || "Failed to load news")
+      } finally {
+        if (!cancelled) setLoading(false)
+      }
+    }
+    load()
+    return () => {
+      cancelled = true
+    }
+  }, [])
+
+  const industries = useMemo(() => {
+    const set = new Set<string>(["All"]) 
+    for (const a of articles) set.add(a.category || "Other")
+    return Array.from(set)
+  }, [articles])
+
+  const filtered = useMemo(() => {
+    return articles.filter((a) => {
+      const byIndustry = industry === "All" || (a.category || "Other") === industry
+      const q = query.trim().toLowerCase()
+      const byQuery = !q || a.title.toLowerCase().includes(q) || (a.description || "").toLowerCase().includes(q)
+      return byIndustry && byQuery
+    })
+  }, [articles, industry, query])
+
   return (
-    <div className="h-full w-full overflow-auto bg-gradient-to-br from-slate-50 via-white to-slate-100 dark:from-slate-900 dark:via-slate-800 dark:to-slate-900">
-      {/* Hero Section */}
-      <div className="relative overflow-hidden">
-        <div className="absolute inset-0 bg-gradient-to-r from-blue-600/10 via-purple-600/10 to-pink-600/10 dark:from-blue-400/5 dark:via-purple-400/5 dark:to-pink-400/5"></div>
-        <div className="relative container mx-auto px-6 py-8">
-          <div className="text-center space-y-4">
-            <div className="inline-flex items-center gap-2 px-4 py-2 rounded-full bg-blue-500/10 dark:bg-blue-400/10 text-blue-600 dark:text-blue-400 text-sm font-medium">
-              <Activity className="w-4 h-4" />
-              Live Financial Intelligence
-            </div>
-            <h1 className="text-4xl md:text-5xl font-bold bg-gradient-to-r from-slate-900 via-slate-700 to-slate-900 dark:from-white dark:via-slate-200 dark:to-white bg-clip-text text-transparent">
-              Global Insights Dashboard
-            </h1>
-            <p className="text-lg text-slate-600 dark:text-slate-300 max-w-2xl mx-auto">
-              Real-time market analysis, global events tracking, and AI-powered financial intelligence
-            </p>
-          </div>
-        </div>
-      </div>
-
-      {/* Main Content */}
-      <div className="container mx-auto px-6 pb-8 space-y-8">
-        {/* Stats Overview */}
-        <div className="space-y-4">
-          <div className="flex items-center gap-3">
-            <div className="w-1 h-8 bg-gradient-to-b from-blue-500 to-purple-500 rounded-full"></div>
-            <h2 className="text-2xl font-bold text-slate-900 dark:text-white">Market Overview</h2>
-          </div>
-          <StatsOverview />
+    <div className="h-full w-full overflow-auto bg-gradient-to-b from-background to-muted/20">
+      <div className="container mx-auto px-6 py-6 space-y-6">
+        {/* Page Title */}
+        <div>
+          <h1 className="text-3xl font-bold tracking-tight">News</h1>
+          <p className="text-sm text-muted-foreground">Latest articles powered by MarketAux</p>
         </div>
 
-        {/* Main Dashboard Grid */}
-        <div className="grid grid-cols-1 xl:grid-cols-12 gap-6">
-          {/* Market Chart - Takes up more space */}
-          <div className="xl:col-span-8">
-            <div className="h-full">
-              <div className="flex items-center gap-3 mb-4">
-                <div className="w-1 h-6 bg-gradient-to-b from-green-500 to-emerald-500 rounded-full"></div>
-                <h3 className="text-xl font-semibold text-slate-900 dark:text-white">Global Market Index</h3>
-              </div>
-              <MarketChart
-                title=""
-                data={globalIndexData}
-                change={32.5}
-                changePercent={1.03}
-                color="hsl(var(--chart-1))"
-              />
-            </div>
+        {/* Search */}
+        <div className="w-full">
+          <Input
+            value={query}
+            onChange={(e) => setQuery(e.target.value)}
+            placeholder="Search headlines..."
+            className="h-11"
+          />
+        </div>
+
+        {/* Filters row */}
+        <div className="flex flex-col sm:flex-row items-start sm:items-center gap-3">
+          <div className="flex items-center gap-2">
+            <label htmlFor="industry" className="text-sm text-muted-foreground">Industry</label>
+            <select
+              id="industry"
+              value={industry}
+              onChange={(e) => setIndustry(e.target.value)}
+              className="h-10 rounded-md border border-input bg-background px-3 text-sm shadow-sm focus:outline-none"
+            >
+              {industries.map((ind) => (
+                <option key={ind} value={ind}>{ind}</option>
+              ))}
+            </select>
           </div>
 
-          {/* Activity Feed */}
-          <div className="xl:col-span-4">
-            <div className="h-full">
-              <div className="flex items-center gap-3 mb-4">
-                <div className="w-1 h-6 bg-gradient-to-b from-orange-500 to-red-500 rounded-full"></div>
-                <h3 className="text-xl font-semibold text-slate-900 dark:text-white">Live Activity</h3>
-              </div>
-              <ActivityFeed />
-            </div>
+          <div className="sm:ml-auto">
+            <Button variant="default" disabled title="Coming soon">
+              Summarize article
+            </Button>
           </div>
         </div>
 
-        {/* Bottom Section */}
-        <div className="grid grid-cols-1 xl:grid-cols-2 gap-6">
-          {/* Events Impact */}
-          <div className="space-y-4">
-            <div className="flex items-center gap-3">
-              <div className="w-1 h-6 bg-gradient-to-b from-purple-500 to-pink-500 rounded-full"></div>
-              <h3 className="text-xl font-semibold text-slate-900 dark:text-white">High-Impact Events</h3>
-            </div>
-            <EventImpactList />
+        {/* Error/Loading */}
+        {error && (
+          <div className="text-sm text-red-500">{error}</div>
+        )}
+        {loading && (
+          <div className="flex items-center text-sm text-muted-foreground">
+            <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+            Loading news…
           </div>
+        )}
 
-          {/* AI Chat */}
-          <div className="space-y-4">
-            <div className="flex items-center gap-3">
-              <div className="w-1 h-6 bg-gradient-to-b from-cyan-500 to-blue-500 rounded-full"></div>
-              <h3 className="text-xl font-semibold text-slate-900 dark:text-white">AI Financial Assistant</h3>
-            </div>
-            <GeminiChat />
-          </div>
+        {/* Articles list */}
+        <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-6">
+          {filtered.map((a) => (
+            <a key={a.uuid} href={a.url} target="_blank" rel="noreferrer" className="group">
+              <Card className="overflow-hidden transition-shadow group-hover:shadow-md">
+                <div className="aspect-[16/9] bg-muted overflow-hidden">
+                  {/* eslint-disable-next-line @next/next/no-img-element */}
+                  <img
+                    src={a.image_url || "/vercel.svg"}
+                    alt={a.title}
+                    className="w-full h-full object-cover"
+                    loading="lazy"
+                  />
+                </div>
+                <div className="p-4 space-y-3">
+                  <div className="flex items-center gap-2">
+                    <Badge variant="secondary">{a.category || "Other"}</Badge>
+                  </div>
+                  <h3 className="font-semibold leading-snug line-clamp-2">
+                    {a.title}
+                  </h3>
+                  <div className="text-xs text-muted-foreground">
+                    <span>By {a.source || "Unknown"}</span>
+                    <span className="mx-1">•</span>
+                    <time dateTime={a.published_at}>
+                      {new Date(a.published_at).toLocaleString()}
+                    </time>
+                  </div>
+                </div>
+              </Card>
+            </a>
+          ))}
         </div>
+
+        {!loading && !error && filtered.length === 0 && (
+          <div className="text-sm text-muted-foreground">No articles found.</div>
+        )}
       </div>
     </div>
   )
