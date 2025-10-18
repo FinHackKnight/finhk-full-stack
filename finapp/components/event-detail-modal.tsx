@@ -7,9 +7,10 @@ import { Button } from "@/components/ui/button"
 interface EventDetailModalProps {
   event: EventWithMarkets
   onClose: () => void
+  onStockClick?: (stock: { symbol: string; name: string; changePercent: number }) => void
 }
 
-export function EventDetailModal({ event, onClose }: EventDetailModalProps) {
+export function EventDetailModal({ event, onClose, onStockClick }: EventDetailModalProps) {
   const impactColor =
     event.impactLevel === "high"
       ? "text-rose-400"
@@ -98,7 +99,8 @@ export function EventDetailModal({ event, onClose }: EventDetailModalProps) {
                 {event.relevantStocks.map((stock) => (
                   <div
                     key={stock.symbol}
-                    className="flex items-center gap-3 p-3 rounded-lg bg-muted/20 border border-border/50 hover:bg-muted/30 transition-colors"
+                    className="flex items-center gap-3 p-3 rounded-lg bg-muted/20 border border-border/50 hover:bg-muted/30 transition-colors cursor-pointer"
+                    onClick={() => onStockClick?.(stock)}
                   >
                     <div className="w-10 h-10 rounded-full bg-primary/10 flex items-center justify-center shrink-0">
                       <span className="text-xs font-mono font-semibold text-primary">{stock.symbol.slice(0, 2)}</span>

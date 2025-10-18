@@ -50,7 +50,11 @@ function getCategoryIcon(category: string) {
   }
 }
 
-export function MapView() {
+interface MapViewProps {
+  onStockClick?: (stock: { symbol: string; name: string; changePercent: number }) => void
+}
+
+export function MapView({ onStockClick }: MapViewProps) {
   const [hoveredEventId, setHoveredEventId] = useState<string | null>(null)
   const [searchQuery, setSearchQuery] = useState("")
   const [selectedCategories, setSelectedCategories] = useState<string[]>([])
@@ -81,7 +85,7 @@ export function MapView() {
 
       <div className="w-96 border-r border-border/50 bg-card/30 backdrop-blur-sm flex flex-col relative">
         {selectedEvent ? (
-          <EventDetailModal event={selectedEvent} onClose={handleCloseModal} />
+          <EventDetailModal event={selectedEvent} onClose={handleCloseModal} onStockClick={onStockClick} />
         ) : (
           <>
             <div className="p-4 border-b border-border/50 space-y-3">

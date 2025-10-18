@@ -23,7 +23,11 @@ const generateData = (base: number, volatility: number, points = 24) => {
 
 const globalIndexData = generateData(3200, 15)
 
-export function DashboardView() {
+interface DashboardViewProps {
+  onStockClick?: (stock: { symbol: string; name: string; changePercent: number }) => void
+}
+
+export function DashboardView({ onStockClick }: DashboardViewProps) {
   return (
     <div className="h-full w-full overflow-auto bg-gradient-to-br from-slate-50 via-white to-slate-100 dark:from-slate-900 dark:via-slate-800 dark:to-slate-900">
       {/* Hero Section */}

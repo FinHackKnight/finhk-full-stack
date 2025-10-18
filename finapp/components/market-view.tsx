@@ -6,6 +6,7 @@ import { MarketIndicators } from "@/components/market-indicators"
 import { EventImpactList } from "@/components/event-impact-list"
 import { Globe3D } from "@/components/globe-3d"
 import { EventCard } from "@/components/event-card"
+import { EventDetailModal } from "@/components/event-detail-modal"
 import { mockEventsWithMarkets } from "@/lib/mock-data"
 import type { EventWithMarkets } from "@/lib/mock-data"
 import { ScrollArea } from "@/components/ui/scroll-area"
@@ -49,7 +50,11 @@ const sectorPerformance = [
   { name: "Industrial", change: 1.4, color: "text-cyan-500" }
 ]
 
-export function MarketView() {
+interface MarketViewProps {
+  onStockClick?: (stock: { symbol: string; name: string; changePercent: number }) => void
+}
+
+export function MarketView({ onStockClick }: MarketViewProps) {
   const [hoveredEventId, setHoveredEventId] = useState<string | null>(null)
   const [selectedEvent, setSelectedEvent] = useState<EventWithMarkets | null>(null)
   const [activeTimeframe, setActiveTimeframe] = useState<"1D" | "1W" | "1M" | "3M">("1D")
@@ -270,6 +275,15 @@ export function MarketView() {
           </div>
         </div>
       </div>
+
+      {/* Event Detail Modal */}
+      {selectedEvent && (
+        <EventDetailModal
+          event={selectedEvent}
+          onClose={() => setSelectedEvent(null)}
+          onStockClick={onStockClick}
+        />
+      )}
     </div>
   )
 }
