@@ -7,11 +7,13 @@ echo "Setting up environment variables..."
 cat > .env.local << EOF
 GEMINI_API_KEY=AIzaSyBgEmClWY3WBt1HKSOOoKz-gBhHzw8mfII
 MARKETAUX_API_KEY=sgarLBh196hvQlOxfpVLNUEp9r0uuP30yuva8PJT
+ALPHAVANTAGE_KEY=YOUR_ALPHAVANTAGE_KEY
 EOF
 
 echo "Environment variables set up successfully!"
 echo "Created .env.local with:"
 echo "- GEMINI_API_KEY"
 echo "- MARKETAUX_API_KEY"
+echo "- ALPHAVANTAGE_KEY (replace with your actual key)"
 echo ""
 echo "You can now run the application with: npm run dev"
