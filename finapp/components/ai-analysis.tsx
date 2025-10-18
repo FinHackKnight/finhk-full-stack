@@ -193,7 +193,7 @@ export function AIAnalysis({ symbol, stockData }: AIAnalysisProps) {
       </div>
 
       {/* Input Area */}
-      <div className="p-4 border-t border-border/50">
+      <div className="p-2 border-t border-border/50">
         <div className="flex gap-2">
           <Input
             value={inputMessage}
