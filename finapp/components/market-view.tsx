@@ -67,42 +67,10 @@ export function MarketView() {
   >("1D");
   const [searchSymbol, setSearchSymbol] = useState<string>("");
 
-  /*
-  async function fetchTopStocks(timeframe: "1D" | "1W" | "1M" | "3M") {
-    try {
-      const res = await fetch(
-        `/api/stocks/trending?type=${activeType}&limit=9&timeframe=${activeTimeframe}`
-      );
-      const json = await res.json();
-      if (json.success) {
-        const withCharts = generateStocksData(json.data, timeframe);
-        setStocks(withCharts);
-      }
-    } catch (err) {
-      console.error(err);
-    }
-  }
-
-  /*
-  async function handleFetch(
-    symbol: string[],
-    timeframe: "1D" | "1W" | "1M" | "3M"
-  ) {
-    try {
-      const res = await fetch(
-        `/api/stocks/quote?symbol=${symbol}&interval=${timeframe}`
-      );
-      if (!res.ok) {
-        throw new Error(`HTTP ${res.status}: ${res.statusText}`);
-      }
-      const data = await res.json();
-      setData(data);
-    } catch (err) {
-      console.error("Fetch error:", err);
-      setError(err instanceof Error ? err.message : "Failed to fetch data");
-    }
-  }
-    */
+  // Simple refresh using mocks for the selected timeframe
+  const refreshStocks = () => {
+    setStocks(generateMockStocks(9, activeTimeframe));
+  };
 
   // Get recent events (last 10)
   const recentEvents = mockEventsWithMarkets.slice(0, 10);
@@ -124,10 +92,10 @@ export function MarketView() {
     <div className="h-full w-full overflow-auto bg-gradient-to-br from-slate-50 via-white to-slate-100 dark:from-slate-900 dark:via-slate-800 dark:to-slate-900">
       {/* Hero Section */}
       <button
-        onClick={() => fetchTopStocks(activeTimeframe)}
+        onClick={refreshStocks}
         className="px-4 py-2 bg-green-500 text-white rounded cursor-pointer"
       >
-        Fetch Data
+        Refresh Data
       </button>
       <div className="relative overflow-hidden">
         <div className="absolute inset-0 bg-gradient-to-r from-blue-600/10 via-purple-600/10 to-pink-600/10 dark:from-blue-400/5 dark:via-purple-400/5 dark:to-pink-400/5"></div>

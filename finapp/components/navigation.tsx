@@ -5,6 +5,7 @@ import {
   TrendingUp,
   LayoutDashboard,
   Newspaper,
+  BookOpen,
   Moon,
   Sun,
 } from "lucide-react";
@@ -12,7 +13,7 @@ import {
 import { Button } from "@/components/ui/button";
 import { ThemeToggle } from "@/components/theme-toggle";
 
-type ViewType = "map" | "market" | "news";
+type ViewType = "map" | "market" | "news" | "tutorials";
 
 interface NavigationProps {
   currentView: ViewType;
@@ -59,6 +60,15 @@ export function Navigation({ currentView, onViewChange }: NavigationProps) {
           >
             <Newspaper className="w-4 h-4" />
             News
+          </Button>
+          <Button
+            variant={currentView === "tutorials" ? "default" : "ghost"}
+            size="sm"
+            onClick={() => onViewChange("tutorials")}
+            className="gap-2"
+          >
+            <BookOpen className="w-4 h-4" />
+            Tutorials
           </Button>
         </div>
       </div>

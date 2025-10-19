@@ -7,8 +7,9 @@ import { NewsTicker } from "@/components/news-ticker";
 import { MapView } from "@/components/map-view";
 import { MarketView } from "@/components/market-view";
 import { DashboardView } from "@/components/dashboard-view";
+import { TutorialView } from "@/components/tutorial-view";
 
-type ViewType = "map" | "market" | "news";
+type ViewType = "map" | "market" | "news" | "tutorials";
 
 export default function Home() {
   const [currentView, setCurrentView] = useState<ViewType>("map");
@@ -29,13 +30,10 @@ export default function Home() {
       <NewsTicker />
 
       <main className="flex-1 overflow-hidden">
-        {currentView === "map" && <MapView onStockClick={handleStockClick} />}
-        {currentView === "market" && (
-          <MarketView onStockClick={handleStockClick} />
-        )}
-        {currentView === "dashboard" && (
-          <DashboardView onStockClick={handleStockClick} />
-        )}
+        {currentView === "map" && <MapView />}
+        {currentView === "market" && <MarketView />}
+        {currentView === "news" && <DashboardView />}
+        {currentView === "tutorials" && <TutorialView />}
       </main>
     </div>
   );

@@ -3,7 +3,7 @@
 import { useEffect, useRef, useState } from 'react';
 import { useGemini } from '@/lib/hooks/use-gemini';
 import { Button } from '@/components/ui/button';
-import { Input } from '@/components/ui/input';
+// Removed single-line Input in favor of auto-resizing textarea
 import { Card } from '@/components/ui/card';
 import { X, Send } from 'lucide-react';
 import ReactMarkdown from 'react-markdown';
@@ -29,7 +29,7 @@ export function GeminiChat({ open, onOpenChange, initialPrompt }: GeminiChatSide
   const [messages, setMessages] = useState<ChatMsg[]>([]);
   const [dragOver, setDragOver] = useState(false);
   const endRef = useRef<HTMLDivElement | null>(null);
-  const inputRef = useRef<HTMLInputElement | null>(null);
+  const textareaRef = useRef<HTMLTextAreaElement | null>(null);
 
   // Default greeting on first open; do not auto-send anything
   useEffect(() => {
@@ -54,9 +54,17 @@ export function GeminiChat({ open, onOpenChange, initialPrompt }: GeminiChatSide
     if (open && initialPrompt) {
       setInput(initialPrompt);
       // focus input for convenience
-      setTimeout(() => inputRef.current?.focus(), 0);
+      setTimeout(() => textareaRef.current?.focus(), 0);
     }
   }, [open, initialPrompt]);
+
+  // Auto-resize textarea as the user types
+  useEffect(() => {
+    const el = textareaRef.current;
+    if (!el) return;
+    el.style.height = '0px';
+    el.style.height = Math.min(el.scrollHeight, 200) + 'px'; // cap at 200px
+  }, [input, open]);
 
   const handleSend = async (val?: string) => {
     const text = (val ?? input).trim();
@@ -148,7 +156,7 @@ export function GeminiChat({ open, onOpenChange, initialPrompt }: GeminiChatSide
 
     const prompt = `Summarize the following news article in 3-5 bullet points. Include key entities, key facts, and potential market impact.\nTitle: ${title ?? ''}\nURL: ${url ?? ''}`;
     setInput(prompt);
-    setTimeout(() => inputRef.current?.focus(), 0);
+    setTimeout(() => textareaRef.current?.focus(), 0);
   };
 
   return (
@@ -219,14 +227,23 @@ export function GeminiChat({ open, onOpenChange, initialPrompt }: GeminiChatSide
             e.preventDefault();
             handleSend();
           }}
-          className="border-t p-3 flex items-center gap-2"
+          className="border-t p-3 flex items-end gap-2"
         >
-          <Input
-            ref={inputRef}
+          <textarea
+            ref={textareaRef}
             value={input}
             onChange={(e) => setInput(e.target.value)}
-            placeholder={loading ? 'Generating…' : 'Type a message or drop a link'}
+            onKeyDown={(e) => {
+              if (e.key === 'Enter' && !e.shiftKey) {
+                e.preventDefault();
+                handleSend();
+              }
+            }}
+            placeholder={loading ? 'Generating…' : 'Type a message (Shift+Enter for newline) or drop a link'}
             disabled={loading}
+            rows={1}
+            className="flex-1 resize-none rounded-md border bg-background px-3 py-2 text-sm shadow-sm focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring disabled:cursor-not-allowed disabled:opacity-50"
+            style={{ maxHeight: 200, lineHeight: '1.4' }}
           />
           <Button type="submit" disabled={loading || !input.trim()}>
             <Send className="h-4 w-4 mr-1" />

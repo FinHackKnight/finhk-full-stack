@@ -1,13 +1,40 @@
 "use client"
 
 import type { EventWithMarkets } from "@/lib/mock-data"
-import { Calendar } from "lucide-react"
+import { Calendar, MapPin } from "lucide-react"
 
 interface EventCardProps {
   event: EventWithMarkets
   onHover?: (eventId: string | null) => void
   onClick?: (event: EventWithMarkets) => void
 }
+
+// Helper to get country name from code
+const getCountryName = (code: string): string => {
+  const countryNames: Record<string, string> = {
+    'US': 'United States',
+    'GB': 'United Kingdom',
+    'CA': 'Canada',
+    'FR': 'France',
+    'DE': 'Germany',
+    'JP': 'Japan',
+    'CN': 'China',
+    'IN': 'India',
+    'KR': 'South Korea',
+    'AU': 'Australia',
+    'BR': 'Brazil',
+    'MX': 'Mexico',
+    'SG': 'Singapore',
+    'HK': 'Hong Kong',
+    'IT': 'Italy',
+    'ES': 'Spain',
+    'NL': 'Netherlands',
+    'SE': 'Sweden',
+    'CH': 'Switzerland',
+    'NO': 'Norway',
+  };
+  return countryNames[code.toUpperCase()] || code || 'Unknown';
+};
 
 export function EventCard({ event, onHover, onClick }: EventCardProps) {
   const impactColors = {
@@ -28,6 +55,8 @@ export function EventCard({ event, onHover, onClick }: EventCardProps) {
     onClick?.(event)
   }
 
+  const countryDisplay = getCountryName(event.location.country);
+
   return (
     <div
       className={`p-3 rounded-lg border cursor-pointer transition-all duration-300 hover:scale-[1.02] hover:shadow-lg ${impactColors[event.impactLevel]}`}
@@ -42,7 +71,10 @@ export function EventCard({ event, onHover, onClick }: EventCardProps) {
             <Calendar className="w-3 h-3" />
             <span className="font-mono">{event.date}</span>
           </div>
-          <span className="text-xs">{event.location.country}</span>
+          <div className="flex items-center gap-1">
+            <MapPin className="w-3 h-3" />
+            <span>{countryDisplay}</span>
+          </div>
         </div>
       </div>
     </div>
