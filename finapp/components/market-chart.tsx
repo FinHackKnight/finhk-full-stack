@@ -44,7 +44,9 @@ export function MarketChart({
             </h3>
             <div className="flex items-baseline gap-2 mt-1">
               <span className="text-2xl font-semibold">
-                {data[data.length - 1].value.toFixed(2)}
+                {data.length > 0
+                  ? data[data.length - 1].value.toFixed(2)
+                  : "N/A"}
               </span>
               <div
                 className={`flex items-center gap-1 text-sm ${
@@ -70,7 +72,7 @@ export function MarketChart({
             <AreaChart data={data}>
               <defs>
                 <linearGradient
-                  id={`gradient-${title.replace(/\W+/g, "-").toLowerCase()}`}
+                  id={`gradient-${title?.replace(/\W+/g, "-").toLowerCase()}`}
                   x1="0"
                   y1="0"
                   x2="0"
@@ -110,7 +112,7 @@ export function MarketChart({
                 dataKey="value"
                 stroke={color}
                 fill={`url(#gradient-${title
-                  .replace(/\W+/g, "-")
+                  ?.replace(/\W+/g, "-")
                   .toLowerCase()})`}
                 strokeWidth={2}
                 baseValue="dataMin"

@@ -8,6 +8,7 @@ import { EventCard } from "@/components/event-card";
 import { mockEventsWithMarkets } from "@/lib/mock-data";
 import type { EventWithMarkets } from "@/lib/mock-data";
 import { ScrollArea } from "@/components/ui/scroll-area";
+import { generateMockStocks } from "@/lib/stock-data";
 import { Card } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import {
@@ -24,27 +25,14 @@ import { Search } from "lucide-react";
 import { Input } from "./ui/input";
 import { Button } from "./ui/button";
 
-// Generate sample data
-const generateData = (base: number, volatility: number, points = 24) => {
-  const data = [];
-  let value = base;
-  for (let i = 0; i < points; i++) {
-    value += (Math.random() - 0.5) * volatility;
-    data.push({
-      time: `${i}:00`,
-      value: value,
-    });
-  }
-  return data;
-};
-
-const sp500Data = generateData(4500, 20).map((d) => ({
-  time: d.time,
-  value: ((d.value - 4500) / 4500) * 100, // percent change
-}));
-const nasdaqData = generateData(14200, 50);
-const dowData = generateData(35000, 100);
-
+interface Stock {
+  ticker: string;
+  price: number;
+  change_amount: number;
+  change_percentage: number;
+  volume: number;
+  chartData?: MarketData[];
+}
 // Market sentiment data
 const marketSentiment = {
   overall: "Bullish",
@@ -67,8 +55,8 @@ export function MarketView() {
   const [activeType, setActiveType] = useState<"gainers" | "losers" | "active">(
     "gainers"
   );
-  const [stocks, setStocks] = useState<any[]>([]);
-  const [data, setData] = useState<MarketData[]>([]);
+  const [stocks, setStocks] = useState(generateMockStocks(9));
+  //const [data, setData] = useState<MarketData[]>([]);
   const [error, setError] = useState<string | null>(null);
   const [hoveredEventId, setHoveredEventId] = useState<string | null>(null);
   const [selectedEvent, setSelectedEvent] = useState<EventWithMarkets | null>(
@@ -79,18 +67,23 @@ export function MarketView() {
   >("1D");
   const [searchSymbol, setSearchSymbol] = useState<string>("");
 
+  /*
   async function fetchTopStocks(timeframe: "1D" | "1W" | "1M" | "3M") {
     try {
       const res = await fetch(
-        `/api/stocks/trending?type=${activeType}&limit=10&timeframe=${activeTimeframe}`
+        `/api/stocks/trending?type=${activeType}&limit=9&timeframe=${activeTimeframe}`
       );
       const json = await res.json();
-      if (json.success) setStocks(json.data);
+      if (json.success) {
+        const withCharts = generateStocksData(json.data, timeframe);
+        setStocks(withCharts);
+      }
     } catch (err) {
       console.error(err);
     }
   }
 
+  /*
   async function handleFetch(
     symbol: string[],
     timeframe: "1D" | "1W" | "1M" | "3M"
@@ -109,6 +102,7 @@ export function MarketView() {
       setError(err instanceof Error ? err.message : "Failed to fetch data");
     }
   }
+    */
 
   // Get recent events (last 10)
   const recentEvents = mockEventsWithMarkets.slice(0, 10);
@@ -116,6 +110,11 @@ export function MarketView() {
   const handleEventClick = (event: EventWithMarkets) => {
     setSelectedEvent(event);
   };
+
+  function getRandomColor() {
+    const hue = Math.floor(Math.random() * 360);
+    return `hsl(${hue}, 70%, 50%)`; // random hue, 70% saturation, 50% lightness
+  }
 
   const hoveredEvent = hoveredEventId
     ? recentEvents.find((e) => e.id === hoveredEventId) || null
@@ -209,7 +208,10 @@ export function MarketView() {
                 {(["1D", "1W", "1M", "3M"] as const).map((tf) => (
                   <button
                     key={tf}
-                    onClick={() => setActiveTimeframe(tf)}
+                    onClick={() => {
+                      setActiveTimeframe(tf); // update state
+                      setStocks(generateMockStocks(9, tf)); // regenerate mock stocks
+                    }}
                     className={`px-3 py-1.5 text-sm rounded-md ${
                       activeTimeframe === tf
                         ? "bg-blue-500 text-white"
@@ -226,33 +228,15 @@ export function MarketView() {
           {/* Data grid */}
           {stocks && stocks.length > 0 ? (
             <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
-              {stocks.map((stock) => (
-                <Card
-                  key={stock.symbol}
-                  className="p-4 flex flex-col justify-between border-border bg-card/60 backdrop-blur-sm hover:shadow-md transition"
-                >
-                  <div>
-                    <h3 className="text-lg font-semibold">{stock.symbol}</h3>
-                    <p className="text-sm text-muted-foreground">
-                      {stock.timeframe} timeframe
-                    </p>
-                  </div>
-                  <div className="flex justify-between items-end mt-3">
-                    <span className="text-xl font-bold">
-                      ${stock.price.toFixed(2)}
-                    </span>
-                    <span
-                      className={`text-sm font-medium ${
-                        stock.changePercent >= 0
-                          ? "text-green-500"
-                          : "text-red-500"
-                      }`}
-                    >
-                      {stock.changePercent >= 0 ? "+" : ""}
-                      {stock.changePercent.toFixed(2)}%
-                    </span>
-                  </div>
-                </Card>
+              {stocks.map((s, i) => (
+                <MarketChart
+                  key={`${s.ticker}-${i}`}
+                  title={s.ticker}
+                  data={s.chartData || []}
+                  change={s.change}
+                  changePercent={s.changePercent}
+                  color={getRandomColor()}
+                />
               ))}
             </div>
           ) : (
