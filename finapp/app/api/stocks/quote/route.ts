@@ -1,69 +1,123 @@
-import { NextRequest, NextResponse } from 'next/server';
-import { getStockQuote, getMultipleStockQuotes } from '@/lib/stock-data';
+// app/api/stocks/route.ts
+import { NextResponse } from "next/server";
 
-export async function GET(request: NextRequest) {
-  try {
-    const { searchParams } = new URL(request.url);
-    const symbols = searchParams.get('symbols');
+const ALPHA_VANTAGE_KEY = process.env.ALPHA_VANTAGE_KEY;
 
-    if (!symbols) {
-      return NextResponse.json(
-        { error: 'Symbols parameter is required' },
-        { status: 400 }
-      );
-    }
-
-    const symbolArray = symbols.split(',').map(s => s.trim().toUpperCase());
-    
-    let data;
-    if (symbolArray.length === 1) {
-      data = await getStockQuote(symbolArray[0]);
-    } else {
-      data = await getMultipleStockQuotes(symbolArray);
-    }
-
-    return NextResponse.json({
-      success: true,
-      data
-    });
-
-  } catch (error: any) {
-    console.error('Stock quote API error:', error);
-    return NextResponse.json(
-      { 
-        error: 'Failed to fetch stock quotes',
-        details: error.message 
-      },
-      { status: 500 }
-    );
-  }
+interface MarketData {
+  time: string;
+  value: number; // percent change
 }
 
-export async function POST(request: NextRequest) {
+export async function GET(req: Request) {
   try {
-    const { symbols } = await request.json();
+    const urlParams = new URL(req.url).searchParams;
+    const symbol = urlParams.get("symbol");
+    const interval = urlParams.get("interval") || "1D"; // "daily" or "weekly"
 
-    if (!symbols || !Array.isArray(symbols)) {
+    console.log("Fetching symbol:", symbol, "interval:", interval);
+
+    if (!symbol) {
       return NextResponse.json(
-        { error: 'Symbols array is required' },
+        { error: "Symbol is required" },
         { status: 400 }
       );
     }
+    let data: any;
 
-    const data = await getMultipleStockQuotes(symbols.map(s => s.toUpperCase()));
+    let func = "TIME_SERIES_DAILY";
+    let sliceCount = 7; // default: last 7 days
 
-    return NextResponse.json({
-      success: true,
-      data
+    switch (interval) {
+      case "1D":
+        func = "TIME_SERIES_INTRADAY";
+        break;
+      case "1W":
+        func = "TIME_SERIES_DAILY";
+        sliceCount = 7;
+        break;
+      case "1M":
+        func = "TIME_SERIES_DAILY";
+        sliceCount = 30;
+        break;
+      case "3M":
+        func = "TIME_SERIES_WEEKLY";
+        sliceCount = 12;
+        break;
+    }
+
+    let alphaUrl: string;
+    if (func === "TIME_SERIES_INTRADAY") {
+      alphaUrl = `https://www.alphavantage.co/query?function=${func}&symbol=${symbol}&interval=5min&apikey=${ALPHA_VANTAGE_KEY}`;
+    } else {
+      alphaUrl = `https://www.alphavantage.co/query?function=${func}&symbol=${symbol}&apikey=${ALPHA_VANTAGE_KEY}`;
+    }
+    try {
+      const res = await fetch(alphaUrl);
+      const text = await res.text();
+      console.log("Raw response:", text);
+
+      // Try parsing JSON safely
+
+      try {
+        data = JSON.parse(text);
+      } catch {
+        console.error("Alpha Vantage returned invalid response:", text);
+        return NextResponse.json(
+          { error: "Alpha Vantage returned invalid response" },
+          { status: 500 }
+        );
+      }
+    } catch (e) {
+      console.log(e);
+    }
+
+    // Check for API limit or error
+    if (data["Note"] || data["Error Message"]) {
+      console.error(
+        "Alpha Vantage API message:",
+        data["Note"] || data["Error Message"]
+      );
+      return NextResponse.json(
+        { error: data["Note"] || data["Error Message"] },
+        { status: 429 }
+      );
+    }
+
+    const timeSeriesKey =
+      func === "TIME_SERIES_INTRADAY"
+        ? "Time Series (5min)"
+        : func === "TIME_SERIES_WEEKLY"
+        ? "Weekly Time Series"
+        : "Time Series (Daily)";
+
+    const series = data[timeSeriesKey];
+    if (!series) {
+      return NextResponse.json(
+        { error: "No data found for this symbol" },
+        { status: 404 }
+      );
+    }
+
+    // Sort and limit data
+    const entries = Object.entries(series)
+      .sort(([a], [b]) => new Date(a).getTime() - new Date(b).getTime())
+      .slice(-sliceCount);
+
+    const firstClose = parseFloat(entries[0][1]["4. close"]);
+
+    const chartData: MarketData[] = entries.map(([time, val]) => {
+      const v = val as Record<string, string>;
+      return {
+        time,
+        value: parseFloat(v["4. close"]), // Return actual price, not percentage
+      };
     });
 
-  } catch (error: any) {
-    console.error('Stock quote API error:', error);
+    return NextResponse.json(chartData);
+  } catch (err) {
+    console.error("Unexpected error:", err);
     return NextResponse.json(
-      { 
-        error: 'Failed to fetch stock quotes',
-        details: error.message 
-      },
+      { error: "Something went wrong" },
       { status: 500 }
     );
   }
