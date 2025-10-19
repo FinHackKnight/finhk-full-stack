@@ -1,499 +1,238 @@
-import { NextRequest, NextResponse } from 'next/server';
-import { marketAuxService, NewsQueryParams } from '@/lib/marketaux-news';
-import { generateContent } from '@/lib/gemini';
+import { NextResponse } from "next/server";
+import { GoogleGenerativeAI } from "@google/generative-ai";
 
-// Cache GET responses for 60 seconds at the framework level
-export const revalidate = 60;
+const genAI = new GoogleGenerativeAI(process.env.GEMINI_API_KEY!);
+const MARKET_AUX_KEY = process.env.MARKETAUX_API_KEY!;
+const BATCH_SIZE = 2;
+const cache = new Map<string, any>();
 
-// Simple in-memory cache (per server instance)
-type CacheEntry<T> = { value: T; expiresAt: number };
-const memoryCache = new Map<string, CacheEntry<any>>();
-function getCache<T>(key: string): T | undefined {
-  const entry = memoryCache.get(key);
-  if (!entry) return undefined;
-  if (entry.expiresAt < Date.now()) {
-    memoryCache.delete(key);
-    return undefined;
-  }
-  return entry.value as T;
+// --- Country centroid fallback map ---
+const COUNTRY_CENTROIDS: Record<string, { lat: number; lng: number }> = {
+  US: { lat: 39.8283, lng: -98.5795 },
+  CA: { lat: 56.1304, lng: -106.3468 },
+  GB: { lat: 55.3781, lng: -3.436 },
+  FR: { lat: 46.2276, lng: 2.2137 },
+  DE: { lat: 51.1657, lng: 10.4515 },
+  JP: { lat: 36.2048, lng: 138.2529 },
+  CN: { lat: 35.8617, lng: 104.1954 },
+  IN: { lat: 20.5937, lng: 78.9629 },
+  KR: { lat: 35.9078, lng: 127.7669 },
+  AU: { lat: -25.2744, lng: 133.7751 },
+  BR: { lat: -14.235, lng: -51.9253 },
+  MX: { lat: 23.6345, lng: -102.5528 },
+  SG: { lat: 1.3521, lng: 103.8198 },
+  HK: { lat: 22.3193, lng: 114.1694 },
+  // Add more if needed
+};
+
+// --- Simple hash for caching ---
+const hash = (obj: any) =>
+  JSON.stringify(obj)
+    .split("")
+    .reduce((a, b) => ((a << 5) - a + b.charCodeAt(0)) & 0xffffffff, 0)
+    .toString();
+
+// --- Fetch Marketaux articles ---
+async function fetchMarketaux() {
+  const url = `https://api.marketaux.com/v1/news/all?filter_entities=true&language=en&countries=us&limit=30&api_token=${MARKET_AUX_KEY}`;
+  const res = await fetch(url);
+  if (!res.ok) throw new Error("Failed to fetch Marketaux news");
+  const data = await res.json();
+  return data.data || [];
 }
-function setCache<T>(key: string, value: T, ttlMs: number) {
-  memoryCache.set(key, { value, expiresAt: Date.now() + ttlMs });
-}
 
-// Utility: only send essential fields to the LLM to reduce tokens
-function pickEssentialArticleFields(news: any[]) {
-  return news.map((n) => ({
-    id: n.id ?? n.uuid ?? n.url,
-    title: n.title,
-    description: n.description ?? n.snippet ?? n.summary,
-    url: n.url,
-    image_url: n.image_url ?? n.imageUrl ?? n.main_image,
-    published_at: n.published_at ?? n.publishedAt,
-    source: n.source ?? n.source_domain,
-    entities: n.entities?.map((e: any) => ({ type: e.type, name: e.name, ticker: e.symbol ?? e.ticker })),
-    country: n.country,
-    exchange: n.exchange,
-    symbols: n.symbols,
+// --- Trim articles for Gemini ---
+function trimArticlesForGemini(articles: any[]) {
+  return articles.map((a) => ({
+    title: a.title,
+    summary: a.description || a.snippet || "",
+    published_at: a.published_at,
+    url: a.url,
+    image_url: a.image_url,
+    entities: a.entities?.slice(0, 3) || [],
+    sentiment: a.overall_sentiment_label,
+    sentiment_score: a.overall_sentiment_score,
+    country: a.country || "",
+    topic: a.topic || "",
   }));
 }
 
-// Event interface
-interface Event {
-  Event_title: string;
-  Event_img: string;
-  Event_longtitude: number;
-  event_latitude: number;
-  event_summary: string;
-  event_category: string;
-  Article_link: string;
-  impact_score: number;
-  Impact_reason: string;
-  impact_color: 'green' | 'yellow' | 'red';
-  Relevant_stocks: Array<{ ticker: string; name: string }>;
-  event_date: string; // ISO 8601 date/datetime
+// --- Basic impact hint from sentiment ---
+function impactFromSentiment(score: number) {
+  if (score > 0.4) return { color: "green", impact: Math.round(score * 10) };
+  if (score < -0.4) return { color: "red", impact: Math.round(Math.abs(score) * 10) };
+  return { color: "yellow", impact: 5 };
 }
 
-// GET events with sentiment filtering and Gemini processing
-export async function GET(request: NextRequest) {
-  try {
-    const t0 = Date.now();
-    const { searchParams } = new URL(request.url);
+// --- Gemini prompt ---
+const buildPrompt = (articles: any[]) => `
+You are a financial and market intelligence analyst. Analyze these ${articles.length} market news articles and produce structured market-impact events.
 
-    // Extract query parameters
-    const limit = parseInt(searchParams.get('limit') || '20');
-    const page = parseInt(searchParams.get('page') || '1');
-    const symbols = searchParams.get('symbols')?.split(',').filter(Boolean);
-    const exchanges = searchParams.get('exchanges')?.split(',').filter(Boolean);
-    const countries = searchParams.get('countries')?.split(',').filter(Boolean);
-    const must_have_entities = searchParams.get('must_have_entities') === 'true';
-    const published_after = searchParams.get('published_after');
-    const published_before = searchParams.get('published_before');
+Rules:
+- Only include events with clear positive or negative market impact.
+- Each event must include all required fields using EXACT property names from the schema below.
+- Use sentiment_score and impact_hint to estimate impact and impact_color.
+- Focus on market relevance: always identify related public companies, sectors, or indices.
+- If the event involves a company or organization, include its stock ticker and company name in relevant_stocks.
+  - If multiple companies are mentioned, include up to 3 most relevant ones.
+  - If no public ticker is found, include [{"ticker": null, "name": "<organization name>"}].
+- For location:
+  - If tied to a company or organization, use its headquarters city.
+  - If the event is regional, use the main city where it occurred.
+  - If no city can be determined, use the **country centroid** coordinates for that country.
+  - Always return valid numeric coordinates (latitude/longitude). Avoid zeroes; use null only if absolutely indeterminable.
+- Output **only valid JSON** as an array matching the schema. Do not include explanations or extra text.
 
-    // How many articles to send to Gemini (reduces prompt size)
-    const llm_limit = parseInt(searchParams.get('llm_limit') || '8');
-
-    // Build query parameters for MarketAux
-    const queryParams: NewsQueryParams = {
-      limit,
-      page,
-      sort: 'published_desc',
-      languages: ['en'],
-      must_have_entities,
-    };
-
-    // Add optional filters
-    if (symbols?.length) queryParams.symbols = symbols;
-    if (exchanges?.length) queryParams.exchanges = exchanges;
-    if (countries?.length) queryParams.countries = countries;
-    if (published_after) queryParams.published_after = published_after;
-    if (published_before) queryParams.published_before = published_before;
-
-    // Cache key includes query + llm_limit
-    const cacheKey = `events:get:${JSON.stringify({ queryParams, llm_limit })}`;
-    const cached = getCache<any>(cacheKey);
-    if (cached) {
-      return NextResponse.json(cached, {
-        headers: { 'Cache-Control': 's-maxage=60, stale-while-revalidate=300' },
-      });
-    }
-
-    // Fetch news from MarketAux
-    const news = await marketAuxService.fetchNews(queryParams);
-    const t1 = Date.now();
-
-    if (news.length === 0) {
-      const payload = {
-        success: true,
-        data: [],
-        meta: {
-          found: 0,
-          returned: 0,
-          limit,
-          page,
-          source: 'marketaux + gemini',
-          message: 'No articles found',
-          timings_ms: { total: Date.now() - t0, marketaux: t1 - t0, gemini: 0 },
-        },
-      };
-      setCache(cacheKey, payload, 60_000);
-      return NextResponse.json(payload, {
-        headers: { 'Cache-Control': 's-maxage=60, stale-while-revalidate=300' },
-      });
-    }
-
-    // Send a trimmed set of fields and cap items for LLM
-    const forLLM = pickEssentialArticleFields(news).slice(0, Math.max(1, llm_limit));
-
-    // Prepare the Gemini prompt
-    const prompt = `You are a financial news analyst. Analyze the following news articles and convert them into structured event data.
-
-IMPORTANT: 
-- Only include articles that have POSITIVE or NEGATIVE sentiment/impact on markets or companies. Skip neutral or informational news.
-- Only include events where ALL fields can be populated with real data (no null values allowed).
-- Skip any article if you cannot determine the location coordinates, image URL, article link, or relevant stock tickers.
-- All events must have at least one relevant stock with a valid ticker.
-
-IMPACT SCORING (0–100) + COLOR
-- 0–9   = negligible  → "green"
-- 10–29 = minor/local → "green"
-- 30–49 = moderate    → "yellow"
-- 50–69 = material    → "yellow"
-- 70–89 = major/broad → "red"
-- 90–100= systemic    → "red"
-
-SCORING EXPLANATION (for Impact_reason)
-Write 2–3 short sentences in plain English describing:
-- Who or what is affected (individual company, industry, or multiple markets)
-- How certain or official the news is
-- When the effects will happen (now or later)
-- How big the change or consequence is
-Avoid technical or investor jargon; keep it clear and factual.
-
-LOCATION
-- Use the city or country most connected to the event (where it occurs or where the company/government is based).
-- Return the coordinates (Event_longtitude, event_latitude) if known or easily inferred; otherwise use null.
-
-DATE
-- Set event_date to a realistic ISO 8601 date or datetime for the event; if unclear, default to the article's published date.
-
-INPUT ARTICLES (trimmed):
-${JSON.stringify(forLLM, null, 2)}
-
-OUTPUT FORMAT:
-Return ONLY a valid JSON array conforming to this schema (ALL fields are required, no nulls):
+Schema:
 [
   {
-    "Event_title": "string (required)",
-    "Event_img": "string (required, must be a valid image URL)",
-    "Event_longtitude": number (required, must be a valid longitude),
-    "event_latitude": number (required, must be a valid latitude),
-    "event_summary": "string (required)",
-    "event_category": "string (required)",
-    "Article_link": "string (required, must be a valid URL)",
-    "impact_score": number (required, 0-100),
-    "Impact_reason": "string (required)",
-    "impact_color": "green" | "yellow" | "red" (required),
-    "Relevant_stocks": [ { "ticker": "string (required)", "name": "string (required)" } ] (required, at least one stock),
-    "event_date": "string (ISO 8601, required)"
+    "event_title": "",
+    "event_img": "",
+    "event_longitude": null,
+    "event_latitude": null,
+    "event_summary": "",
+    "event_category": "",
+    "article_link": "",
+    "impact_score": 0,
+    "impact_reason": "",
+    "impact_color": "green" | "yellow" | "red",
+    "relevant_stocks": [{"ticker": "", "name": ""}],
+    "event_date": ""
   }
 ]
 
-Return only the JSON array, no markdown formatting or additional text.`;
+Articles:
+${JSON.stringify(articles, null, 2)}
+`;
 
-    // Call Gemini to process the articles
-    const geminiResponse = await generateContent(prompt);
-    const t2 = Date.now();
-
-    // Parse the Gemini response
-    let events: Event[];
-    try {
-      // Remove markdown code blocks if present
-      let cleanedResponse = geminiResponse.trim();
-      if (cleanedResponse.startsWith('```json')) {
-        cleanedResponse = cleanedResponse.replace(/^```json\n?/, '').replace(/\n?```$/, '');
-      } else if (cleanedResponse.startsWith('```')) {
-        cleanedResponse = cleanedResponse.replace(/^```\n?/, '').replace(/\n?```$/, '');
-      }
-      
-      events = JSON.parse(cleanedResponse);
-      
-      // Validate that it's an array
-      if (!Array.isArray(events)) {
-        throw new Error('Response is not an array');
-      }
-      
-      // Filter out events with null values
-      events = events.filter(event => (
-        event.Event_title != null &&
-        event.Event_img != null &&
-        event.Event_longtitude != null &&
-        event.event_latitude != null &&
-        event.event_summary != null &&
-        event.event_category != null &&
-        event.Article_link != null &&
-        event.impact_score != null &&
-        event.Impact_reason != null &&
-        event.impact_color != null &&
-        event.Relevant_stocks != null &&
-        event.Relevant_stocks.length > 0 &&
-        event.Relevant_stocks.every(stock => stock.ticker != null && stock.name != null) &&
-        event.event_date != null
-      ));
-    } catch (parseError: any) {
-      console.error('Failed to parse Gemini response:', geminiResponse);
-      return NextResponse.json(
-        {
-          error: 'Failed to parse AI response',
-          details: parseError.message,
-          rawResponse: geminiResponse.substring(0, 500), // Include first 500 chars for debugging
-        },
-        { status: 500 }
-      );
-    }
-
-    const payload = {
-      success: true,
-      data: events,
-      meta: {
-        found: events.length,
-        returned: events.length,
-        articlesProcessed: news.length,
-        llm_articles_used: forLLM.length,
-        limit,
-        page,
-        source: 'marketaux + gemini',
-        filters: {
-          sentiment: ['positive', 'negative'],
-          symbols,
-          exchanges,
-          countries,
-          must_have_entities,
-        },
-        timings_ms: {
-          total: Date.now() - t0,
-          marketaux: t1 - t0,
-          gemini: t2 - t1,
-        },
-      },
-    };
-
-    // Cache and return with CDN headers
-    setCache(cacheKey, payload, 60_000);
-    return NextResponse.json(payload, {
-      headers: { 'Cache-Control': 's-maxage=60, stale-while-revalidate=300' },
-    });
-  } catch (error: any) {
-    console.error('Event API error:', error);
-
-    return NextResponse.json(
-      {
-        error: 'Internal server error while processing events',
-        details: error.message,
-      },
-      { status: 500 }
-    );
+// --- Parse Gemini JSON safely ---
+function parseGeminiResponse(text: string) {
+  try {
+    const start = text.indexOf("[");
+    const end = text.lastIndexOf("]");
+    if (start === -1 || end === -1 || end <= start) return [];
+    const parsed = JSON.parse(text.slice(start, end + 1));
+    return Array.isArray(parsed) ? parsed : [];
+  } catch (err) {
+    console.log("Failed parsing Gemini output:", text);
+    return [];
   }
 }
 
-// POST method for complex event queries
-export async function POST(request: NextRequest) {
+// --- Process Gemini batch ---
+async function processBatch(articles: any[]) {
+  const prompt = buildPrompt(articles);
+  const model = genAI.getGenerativeModel({ model: "gemini-2.5-flash" });
+
   try {
-    const t0 = Date.now();
-    const body = await request.json();
-    const {
-      limit = 20,
-      page = 1,
-      symbols,
-      exchanges,
-      entity_types,
-      countries,
-      min_match_score,
-      must_have_entities = false,
-      published_after,
-      published_before,
-      filter_entities = true,
-      llm_limit = 8,
-    } = body || {};
-
-    // Build query parameters
-    const queryParams: NewsQueryParams = {
-      limit,
-      page,
-      sort: 'published_desc',
-      languages: ['en'],
-      must_have_entities,
-      filter_entities,
-    };
-
-    // Add optional filters
-    if (symbols?.length) queryParams.symbols = symbols;
-    if (exchanges?.length) queryParams.exchanges = exchanges;
-    if (entity_types?.length) queryParams.entity_types = entity_types;
-    if (countries?.length) queryParams.countries = countries;
-    if (min_match_score !== undefined) queryParams.min_match_score = min_match_score;
-    if (published_after) queryParams.published_after = published_after;
-    if (published_before) queryParams.published_before = published_before;
-
-    // Cache POST by body query
-    const cacheKey = `events:post:${JSON.stringify({ queryParams, llm_limit })}`;
-    const cached = getCache<any>(cacheKey);
-    if (cached) {
-      return NextResponse.json(cached, {
-        headers: { 'Cache-Control': 's-maxage=60, stale-while-revalidate=300' },
-      });
-    }
-
-    // Fetch news from MarketAux
-    const news = await marketAuxService.fetchNews(queryParams);
-    const t1 = Date.now();
-
-    if (news.length === 0) {
-      const payload = {
-        success: true,
-        data: [],
-        meta: {
-          found: 0,
-          returned: 0,
-          limit,
-          page,
-          source: 'marketaux + gemini',
-          message: 'No articles found',
-          timings_ms: { total: Date.now() - t0, marketaux: t1 - t0, gemini: 0 },
-        },
-      };
-      setCache(cacheKey, payload, 60_000);
-      return NextResponse.json(payload, {
-        headers: { 'Cache-Control': 's-maxage=60, stale-while-revalidate=300' },
-      });
-    }
-
-    // Send a trimmed set of fields and cap items for LLM
-    const forLLM = pickEssentialArticleFields(news).slice(0, Math.max(1, Number(llm_limit)));
-
-    // Prepare the Gemini prompt
-    const prompt = `You are a financial news analyst. Analyze the following news articles and convert them into structured event data.
-
-IMPORTANT: 
-- Only include articles that have POSITIVE or NEGATIVE sentiment/impact on markets or companies. Skip neutral or informational news.
-- Only include events where ALL fields can be populated with real data (no null values allowed).
-- Skip any article if you cannot determine the location coordinates, image URL, article link, or relevant stock tickers.
-- All events must have at least one relevant stock with a valid ticker.
-
-IMPACT SCORING (0–100) + COLOR
-- 0–9   = negligible  → "green"
-- 10–29 = minor/local → "green"
-- 30–49 = moderate    → "yellow"
-- 50–69 = material    → "yellow"
-- 70–89 = major/broad → "red"
-- 90–100= systemic    → "red"
-
-SCORING EXPLANATION (for Impact_reason)
-Write 2–3 short sentences in plain English describing:
-- Who or what is affected (individual company, industry, or multiple markets)
-- How certain or official the news is
-- When the effects will happen (now or later)
-- How big the change or consequence is
-Avoid technical or investor jargon; keep it clear and factual.
-
-LOCATION
-- Use the city or country most connected to the event (where it occurs or where the company/government is based).
-- Return the coordinates (Event_longtitude, event_latitude) if known or easily inferred; otherwise use null.
-
-DATE
-- Set event_date to a realistic ISO 8601 date or datetime for the event; if unclear, default to the article's published date.
-
-INPUT ARTICLES (trimmed):
-${JSON.stringify(forLLM, null, 2)}
-
-OUTPUT FORMAT:
-Return ONLY a valid JSON array conforming to this schema (ALL fields are required, no nulls):
-[
-  {
-    "Event_title": "string (required)",
-    "Event_img": "string (required, must be a valid image URL)",
-    "Event_longtitude": number (required, must be a valid longitude),
-    "event_latitude": number (required, must be a valid latitude),
-    "event_summary": "string (required)",
-    "event_category": "string (required)",
-    "Article_link": "string (required, must be a valid URL)",
-    "impact_score": number (required, 0-100),
-    "Impact_reason": "string (required)",
-    "impact_color": "green" | "yellow" | "red" (required),
-    "Relevant_stocks": [ { "ticker": "string (required)", "name": "string (required)" } ] (required, at least one stock),
-    "event_date": "string (ISO 8601, required)"
+    const result = await model.generateContent(prompt);
+    const text = result.response.text();
+    console.log("Gemini raw output:", text.slice(0, 400));
+    return parseGeminiResponse(text);
+  } catch (err) {
+    console.error("Gemini batch error:", err);
+    return [];
   }
-]
+}
 
-Return only the JSON array, no markdown formatting or additional text.`;
+// --- Normalize Gemini events ---
+function normalizeGeminiEvent(e: any, country?: string) {
+  let longitude = e.event_longitude ?? null;
+  let latitude = e.event_latitude ?? null;
 
-    // Call Gemini to process the articles
-    const geminiResponse = await generateContent(prompt);
-    const t2 = Date.now();
+  if ((!longitude || !latitude) && country && COUNTRY_CENTROIDS[country.toUpperCase()]) {
+    const centroid = COUNTRY_CENTROIDS[country.toUpperCase()];
+    longitude = centroid.lng;
+    latitude = centroid.lat;
+  }
 
-    // Parse the Gemini response
-    let events: Event[];
-    try {
-      // Remove markdown code blocks if present
-      let cleanedResponse = geminiResponse.trim();
-      if (cleanedResponse.startsWith('```json')) {
-        cleanedResponse = cleanedResponse.replace(/^```json\n?/, '').replace(/\n?```$/, '');
-      } else if (cleanedResponse.startsWith('```')) {
-        cleanedResponse = cleanedResponse.replace(/^```\n?/, '').replace(/\n?```$/, '');
-      }
-      
-      events = JSON.parse(cleanedResponse);
-      
-      // Validate that it's an array
-      if (!Array.isArray(events)) {
-        throw new Error('Response is not an array');
-      }
-      
-      // Filter out events with null values
-      events = events.filter(event => (
-        event.Event_title != null &&
-        event.Event_img != null &&
-        event.Event_longtitude != null &&
-        event.event_latitude != null &&
-        event.event_summary != null &&
-        event.event_category != null &&
-        event.Article_link != null &&
-        event.impact_score != null &&
-        event.Impact_reason != null &&
-        event.impact_color != null &&
-        event.Relevant_stocks != null &&
-        event.Relevant_stocks.length > 0 &&
-        event.Relevant_stocks.every(stock => stock.ticker != null && stock.name != null) &&
-        event.event_date != null
-      ));
-    } catch (parseError: any) {
-      console.error('Failed to parse Gemini response:', geminiResponse);
-      return NextResponse.json(
-        {
-          error: 'Failed to parse AI response',
-          details: parseError.message,
-          rawResponse: geminiResponse.substring(0, 500),
-        },
-        { status: 500 }
-      );
+  return {
+    Event_title: e.event_title || "",
+    Event_img: e.event_img || "",
+    Event_longitude: longitude ?? 0,
+    event_latitude: latitude ?? 0,
+    event_summary: e.event_summary || "",
+    event_category: e.event_category || "General",
+    Article_link: e.article_link || "",
+    impact_score: e.impact_score ?? 0,
+    Impact_reason: e.impact_reason || "",
+    impact_color: e.impact_color || "yellow",
+    Relevant_stocks: e.relevant_stocks || [],
+    event_date: e.event_date || new Date().toISOString(),
+  };
+}
+
+// --- API handler ---
+export async function GET() {
+  try {
+    const raw = await fetchMarketaux();
+    const trimmed = trimArticlesForGemini(raw);
+    const filtered = trimmed.filter((a) => a.title);
+
+    const cacheKey = hash(filtered);
+    if (cache.has(cacheKey)) {
+      console.log("Using cached Gemini events");
+      return NextResponse.json(cache.get(cacheKey));
     }
 
-    const payload = {
-      success: true,
-      data: events,
-      meta: {
-        found: events.length,
-        returned: events.length,
-        articlesProcessed: news.length,
-        llm_articles_used: forLLM.length,
-        limit,
-        page,
-        source: 'marketaux + gemini',
-        filters: {
-          sentiment: ['positive', 'negative'],
-          ...queryParams,
-        },
-        timings_ms: {
-          total: Date.now() - t0,
-          marketaux: t1 - t0,
-          gemini: t2 - t1,
-        },
-      },
-    };
+    const enriched = filtered.map((a) => ({
+      ...a,
+      impact_hint: impactFromSentiment(a.sentiment_score || 0),
+    }));
 
-    setCache(cacheKey, payload, 60_000);
-    return NextResponse.json(payload, {
-      headers: { 'Cache-Control': 's-maxage=60, stale-while-revalidate=300' },
-    });
-  } catch (error: any) {
-    console.error('Event POST error:', error);
+    // Split into batches
+    const batches: any[][] = [];
+    for (let i = 0; i < enriched.length; i += BATCH_SIZE) {
+      batches.push(enriched.slice(i, i + BATCH_SIZE));
+    }
 
-    return NextResponse.json(
-      {
-        error: 'Internal server error while processing events',
-        details: error.message,
-      },
-      { status: 500 }
+    // Process in parallel
+    const responses = await Promise.allSettled(batches.map(processBatch));
+    const geminiEventsRaw = responses
+      .filter((r) => r.status === "fulfilled")
+      .flatMap((r: any) => r.value)
+      .filter(Boolean);
+
+    const geminiEvents = geminiEventsRaw.map((e, idx) =>
+      normalizeGeminiEvent(e, enriched[idx]?.country)
     );
+
+    // Fallback for skipped articles
+    const geminiArticleUrls = new Set(geminiEvents.map((e) => e.Article_link));
+    const fallbackEvents = enriched
+      .filter((a) => !geminiArticleUrls.has(a.url))
+      .map((a) => {
+        const centroid = COUNTRY_CENTROIDS[a.country?.toUpperCase()] || { lat: 0, lng: 0 };
+        return {
+          Event_title: a.title,
+          Event_img: a.image_url || "",
+          Event_longitude: centroid.lng,
+          event_latitude: centroid.lat,
+          event_summary: a.summary || "",
+          event_category: a.topic || "General",
+          Article_link: a.url,
+          impact_score: a.impact_hint.impact,
+          Impact_reason: `Estimated from sentiment: ${a.sentiment || "Unknown"}`,
+          impact_color: a.impact_hint.color,
+          Relevant_stocks:
+            a.entities?.length > 0
+              ? a.entities.slice(0, 3).map((e: any) => ({
+                  ticker: e.ticker || null,
+                  name: e.name || e.entity_name || "Unknown",
+                }))
+              : [{ ticker: null, name: a.topic || "Unknown" }],
+          event_date: a.published_at || new Date().toISOString(),
+        };
+      });
+
+    const allEvents = [...geminiEvents, ...fallbackEvents];
+    cache.set(cacheKey, allEvents);
+
+    console.log("✅ Final event count:", allEvents.length);
+    console.log("📘 Sample event:", allEvents[0]);
+    return NextResponse.json(allEvents);
+  } catch (err) {
+    console.error("❌ Error generating events:", err);
+    return NextResponse.json({ error: "Failed to generate events" }, { status: 500 });
   }
 }
