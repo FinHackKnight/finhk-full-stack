@@ -145,47 +145,32 @@ export function DashboardView() {
         {/* Articles list */}
         <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-6">
           {filtered.map((a) => (
-            <a
-              key={a.uuid}
-              href={a.url}
-              target="_blank"
-              rel="noreferrer"
-              className="group"
-              draggable
-              onDragStart={(e) => onDragStartArticle(e, a)}
-            >
-              <Card className="overflow-hidden transition-shadow group-hover:shadow-md">
-                <div className="aspect-[16/9] bg-muted overflow-hidden">
-                  {/* eslint-disable-next-line @next/next/no-img-element */}
-                  <img
-                    src={a.image_url || "/vercel.svg"}
-                    alt={a.title}
-                    className="w-full h-full object-cover"
-                    loading="lazy"
-                  />
-                </div>
-                <div className="p-4 space-y-3">
-                  <div className="flex items-center gap-2">
-                    <Badge variant="secondary">{a.category || "Other"}</Badge>
+            <div key={a.uuid} className="group" draggable onDragStart={(e) => onDragStartArticle(e, a)}>
+              <a href={a.url} target="_blank" rel="noreferrer" className="block">
+                <Card className="overflow-hidden transition-shadow group-hover:shadow-md">
+                  <div className="aspect-[16/9] bg-muted overflow-hidden">
+                    {/* eslint-disable-next-line @next/next/no-img-element */}
+                    <img src={a.image_url || "/vercel.svg"} alt={a.title} className="w-full h-full object-cover" loading="lazy" />
                   </div>
-                  <h3 className="font-semibold leading-snug line-clamp-2">
-                    {a.title}
-                  </h3>
-                  <div className="flex items-center justify-between">
+                  <div className="p-4 space-y-3">
+                    <div className="flex items-center gap-2">
+                      <Badge variant="secondary">{a.category || "Other"}</Badge>
+                    </div>
+                    <h3 className="font-semibold leading-snug line-clamp-2">{a.title}</h3>
                     <div className="text-xs text-muted-foreground">
                       <span>By {a.source || "Unknown"}</span>
                       <span className="mx-1">•</span>
-                      <time dateTime={a.published_at}>
-                        {new Date(a.published_at).toLocaleString()}
-                      </time>
+                      <time dateTime={a.published_at}>{new Date(a.published_at).toLocaleString()}</time>
                     </div>
-                    <Button size="sm" variant="outline" onClick={(e) => { e.preventDefault(); handleSummarize(a); }}>
-                      Summarize
-                    </Button>
                   </div>
-                </div>
-              </Card>
-            </a>
+                </Card>
+              </a>
+              <div className="mt-2 flex justify-end">
+                <Button size="sm" variant="outline" onClick={() => handleSummarize(a)}>
+                  Summarize
+                </Button>
+              </div>
+            </div>
           ))}
         </div>
 
@@ -194,8 +179,10 @@ export function DashboardView() {
         )}
       </div>
 
-      {/* Chat sidebar */}
-      <GeminiChat open={chatOpen} onOpenChange={setChatOpen} initialPrompt={seedPrompt} />
+      {/* Chat sidebar with higher z-index to ensure it can open */}
+      <div className="z-[60] relative">
+        <GeminiChat open={chatOpen} onOpenChange={setChatOpen} initialPrompt={seedPrompt} />
+      </div>
     </div>
   )
 }

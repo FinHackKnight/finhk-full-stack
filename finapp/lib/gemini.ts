@@ -16,6 +16,8 @@ const defaultConfig = {
   tools: [groundingTool],
 };
 
+export type ChatHistoryItem = { role: 'user' | 'assistant' | 'model'; content: string };
+
 export async function generateContent(prompt: string) {
   try {
     const response = await ai.models.generateContent({
@@ -47,6 +49,34 @@ export async function generateContent(prompt: string) {
       throw new Error('API quota exceeded. Please check your Gemini API usage limits.');
     }
 
+    throw error;
+  }
+}
+
+export async function generateContentFromMessages(history: ChatHistoryItem[]) {
+  try {
+    // Map assistant role to model for the API if needed
+    const contents = history.map((m) => ({
+      role: m.role === 'assistant' ? 'model' : m.role,
+      parts: [{ text: m.content }],
+    })) as any;
+
+    const response = await ai.models.generateContent({
+      model: 'gemini-2.5-flash',
+      contents,
+      config: defaultConfig as any,
+    });
+
+    const r: any = response as any;
+    let text = '';
+    if (typeof r.text === 'string') text = r.text;
+    else if (typeof r.text === 'function') text = await r.text();
+    else if (r.response?.text) {
+      text = typeof r.response.text === 'function' ? await r.response.text() : r.response.text;
+    }
+    return String(text || '');
+  } catch (error: any) {
+    console.error('Error generating grounded content with Gemini (history):', error);
     throw error;
   }
 }

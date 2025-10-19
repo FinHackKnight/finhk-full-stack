@@ -16,6 +16,7 @@ export interface GeminiChatSidebarProps {
 interface ChatMsg {
   role: 'user' | 'assistant';
   content: string;
+  typing?: boolean;
 }
 
 const ARTICLE_MIME = 'application/vnd.finhk.article+json';
@@ -61,11 +62,48 @@ export function GeminiChat({ open, onOpenChange, initialPrompt }: GeminiChatSide
     setInput('');
     setMessages((m) => [...m, { role: 'user', content: text }]);
     try {
+      // Reserve a placeholder assistant message with typing flag
+      setMessages((m) => [...m, { role: 'assistant', content: '', typing: true }]);
       const reply = await generateResponse(text);
-      setMessages((m) => [...m, { role: 'assistant', content: reply }]);
+      // Typewriter effect
+      await typeOut(reply);
     } catch {
       // error handled in hook
+      setMessages((m) => m.filter((msg) => !msg.typing));
     }
+  };
+
+  const typeOut = async (fullText: string) => {
+    const speed = 12; // characters per frame batch
+    let shown = '';
+    setMessages((m) => {
+      const idx = m.findIndex((x) => x.typing);
+      if (idx === -1) return m;
+      const dup = [...m];
+      dup[idx] = { ...dup[idx], content: '' };
+      return dup;
+    });
+
+    for (let i = 0; i < fullText.length; i += speed) {
+      shown = fullText.slice(0, i + speed);
+      setMessages((m) => {
+        const idx = m.findIndex((x) => x.typing);
+        if (idx === -1) return m;
+        const dup = [...m];
+        dup[idx] = { ...dup[idx], content: shown };
+        return dup;
+      });
+      await new Promise((r) => setTimeout(r, 20));
+    }
+
+    // finalize: remove typing flag
+    setMessages((m) => {
+      const idx = m.findIndex((x) => x.typing);
+      if (idx === -1) return m;
+      const dup = [...m];
+      dup[idx] = { ...dup[idx], typing: false };
+      return dup;
+    });
   };
 
   // Drag & Drop handlers: prefill input; do not auto-send
@@ -154,13 +192,14 @@ export function GeminiChat({ open, onOpenChange, initialPrompt }: GeminiChatSide
           {messages.map((m, idx) => (
             <div key={idx} className={`flex ${m.role === 'user' ? 'justify-end' : 'justify-start'}`}>
               <div
-                className={`max-w-[85%] rounded-lg px-3 py-2 text-sm whitespace-pre-wrap ${
+                className={`max-w-[85%] rounded-2xl px-3 py-2 text-sm whitespace-pre-wrap shadow-sm ${
                   m.role === 'user'
-                    ? 'bg-primary text-primary-foreground'
-                    : 'bg-muted text-foreground'
+                    ? 'bg-primary text-primary-foreground rounded-br-sm'
+                    : 'bg-muted text-foreground rounded-bl-sm'
                 }`}
               >
                 {m.content}
+                {m.typing && <span className="ml-1 inline-block w-2 h-2 rounded-full bg-foreground/60 animate-pulse" />}
               </div>
             </div>
           ))}
