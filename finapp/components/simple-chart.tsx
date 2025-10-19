@@ -40,7 +40,7 @@ export function SimpleChart({
   // Fetch real data when timeframe changes
   useEffect(() => {
     if (symbol) {
-      handleFetch(symbol, selectedRange);
+      //handleFetch(symbol, selectedRange);
     }
   }, [symbol, selectedRange]);
 
@@ -135,6 +135,7 @@ export function SimpleChart({
 
   const dateRanges: DateRange[] = ["1D", "5D", "1M", "6M", "1Y", "5Y"];
 
+  /*
   async function handleFetch(
     symbol: string,
     timeframe: "1D" | "5D" | "1M" | "6M" | "1Y" | "5Y"
@@ -157,6 +158,7 @@ export function SimpleChart({
       setLoading(false);
     }
   }
+*/
 
   return (
     <div className="relative p-4 rounded-xl bg-gradient-to-br from-slate-500/10 to-slate-600/5 border border-slate-500/20 hover:border-slate-500/40 transition-all duration-300 hover:shadow-lg">

@@ -67,7 +67,7 @@ export default function StockProfilePage() {
       fetchStockData(activeTimeframe);
       fetchStockNews();
     }
-  }, [symbol]);
+  }, [symbol, activeTimeframe]);
 
   const fetchStockData = async (
     timeframe: "1D" | "5D" | "1M" | "6M" | "1Y" | "5Y"
