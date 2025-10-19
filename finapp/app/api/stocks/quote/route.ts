@@ -5,14 +5,14 @@ const ALPHA_VANTAGE_KEY = process.env.ALPHA_VANTAGE_KEY;
 
 interface MarketData {
   time: string;
-  value: number; // percent change
+  price: number; // Changed from 'value' to 'price' to match component expectations
 }
 
 export async function GET(req: Request) {
   try {
     const urlParams = new URL(req.url).searchParams;
     const symbol = urlParams.get("symbol");
-    const interval = urlParams.get("interval") || "1D"; // "daily" or "weekly"
+    const interval = urlParams.get("interval") || "1D";
 
     console.log("Fetching symbol:", symbol, "interval:", interval);
 
@@ -22,16 +22,18 @@ export async function GET(req: Request) {
         { status: 400 }
       );
     }
+
     let data: any;
-
     let func = "TIME_SERIES_DAILY";
-    let sliceCount = 7; // default: last 7 days
+    let sliceCount = 7;
 
+    // Fixed timeframe mapping
     switch (interval) {
       case "1D":
         func = "TIME_SERIES_INTRADAY";
+        sliceCount = 24; // Hourly data for 1 day
         break;
-      case "1W":
+      case "5D":
         func = "TIME_SERIES_DAILY";
         sliceCount = 7;
         break;
@@ -39,24 +41,31 @@ export async function GET(req: Request) {
         func = "TIME_SERIES_DAILY";
         sliceCount = 30;
         break;
-      case "3M":
+      case "6M":
         func = "TIME_SERIES_WEEKLY";
-        sliceCount = 12;
+        sliceCount = 26;
+        break;
+      case "1Y":
+        func = "TIME_SERIES_WEEKLY";
+        sliceCount = 52;
+        break;
+      case "5Y":
+        func = "TIME_SERIES_MONTHLY";
+        sliceCount = 60;
         break;
     }
 
     let alphaUrl: string;
     if (func === "TIME_SERIES_INTRADAY") {
-      alphaUrl = `https://www.alphavantage.co/query?function=${func}&symbol=${symbol}&interval=5min&apikey=${ALPHA_VANTAGE_KEY}`;
+      alphaUrl = `https://www.alphavantage.co/query?function=${func}&symbol=${symbol}&interval=60min&apikey=${ALPHA_VANTAGE_KEY}`;
     } else {
       alphaUrl = `https://www.alphavantage.co/query?function=${func}&symbol=${symbol}&apikey=${ALPHA_VANTAGE_KEY}`;
     }
+
     try {
       const res = await fetch(alphaUrl);
       const text = await res.text();
       console.log("Raw response:", text);
-
-      // Try parsing JSON safely
 
       try {
         data = JSON.parse(text);
@@ -83,11 +92,14 @@ export async function GET(req: Request) {
       );
     }
 
+    // Fixed time series key mapping
     const timeSeriesKey =
       func === "TIME_SERIES_INTRADAY"
-        ? "Time Series (5min)"
+        ? "Time Series (60min)"
         : func === "TIME_SERIES_WEEKLY"
         ? "Weekly Time Series"
+        : func === "TIME_SERIES_MONTHLY"
+        ? "Monthly Time Series"
         : "Time Series (Daily)";
 
     const series = data[timeSeriesKey];
@@ -103,13 +115,11 @@ export async function GET(req: Request) {
       .sort(([a], [b]) => new Date(a).getTime() - new Date(b).getTime())
       .slice(-sliceCount);
 
-    const firstClose = parseFloat(entries[0][1]["4. close"]);
-
     const chartData: MarketData[] = entries.map(([time, val]) => {
       const v = val as Record<string, string>;
       return {
         time,
-        value: parseFloat(v["4. close"]), // Return actual price, not percentage
+        price: parseFloat(v["4. close"]), // Changed from 'value' to 'price'
       };
     });
 
