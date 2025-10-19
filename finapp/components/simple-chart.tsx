@@ -209,87 +209,87 @@ export function SimpleChart({ symbol, stockData }: SimpleChartProps) {
         <div className="absolute top-2 right-2 text-sm font-bold text-slate-800 dark:text-slate-200">
           ${stockData.price.toFixed(2)}
         </div>
+      </div>
 
-        {/* Hover Tooltip */}
-        {showTooltip && (
-          <div className="absolute top-2 left-2 z-10">
-            <Card className="p-3 bg-background/95 backdrop-blur-sm border shadow-lg max-w-xs">
-              <div className="space-y-2 text-xs">
-                <div className="grid grid-cols-2 gap-2">
-                  <div className="space-y-1">
-                    <div className="flex justify-between">
-                      <span className="text-muted-foreground">Previous Close:</span>
-                      <span className="font-medium">${stockData.previousClose.toFixed(2)}</span>
-                    </div>
-                    <div className="flex justify-between">
-                      <span className="text-muted-foreground">Open:</span>
-                      <span className="font-medium">${stockData.open.toFixed(2)}</span>
-                    </div>
-                    <div className="flex justify-between">
-                      <span className="text-muted-foreground">Bid:</span>
-                      <span className="font-medium">${(stockData.price - 0.1).toFixed(2)} x 500</span>
-                    </div>
-                    <div className="flex justify-between">
-                      <span className="text-muted-foreground">Ask:</span>
-                      <span className="font-medium">${(stockData.price + 0.1).toFixed(2)} x 1000</span>
-                    </div>
-                    <div className="flex justify-between">
-                      <span className="text-muted-foreground">Day's Range:</span>
-                      <span className="font-medium">${stockData.low.toFixed(2)} - ${stockData.high.toFixed(2)}</span>
-                    </div>
-                    <div className="flex justify-between">
-                      <span className="text-muted-foreground">52W Range:</span>
-                      <span className="font-medium">${(stockData.low * 0.3).toFixed(2)} - ${(stockData.high * 1.1).toFixed(2)}</span>
-                    </div>
-                    <div className="flex justify-between">
-                      <span className="text-muted-foreground">Volume:</span>
-                      <span className="font-medium">{stockData.volume.toLocaleString()}</span>
-                    </div>
-                    <div className="flex justify-between">
-                      <span className="text-muted-foreground">Avg. Volume:</span>
-                      <span className="font-medium">{(stockData.volume * 0.6).toLocaleString()}</span>
-                    </div>
+      {/* Hover Tooltip - Now positioned under the chart */}
+      {showTooltip && (
+        <div className="mt-4">
+          <Card className="p-3 bg-background/95 backdrop-blur-sm border shadow-lg">
+            <div className="space-y-2 text-xs">
+              <div className="grid grid-cols-2 gap-2">
+                <div className="space-y-1">
+                  <div className="flex justify-between">
+                    <span className="text-muted-foreground">Previous Close:</span>
+                    <span className="font-medium">${stockData.previousClose.toFixed(2)}</span>
                   </div>
-                  <div className="space-y-1">
-                    <div className="flex justify-between">
-                      <span className="text-muted-foreground">Market Cap:</span>
-                      <span className="font-medium">${(stockData.marketCap / 1_000_000_000).toFixed(2)}B</span>
-                    </div>
-                    <div className="flex justify-between">
-                      <span className="text-muted-foreground">Beta:</span>
-                      <span className="font-medium">2.25</span>
-                    </div>
-                    <div className="flex justify-between">
-                      <span className="text-muted-foreground">PE Ratio:</span>
-                      <span className="font-medium">{stockData.pe.toFixed(2)}</span>
-                    </div>
-                    <div className="flex justify-between">
-                      <span className="text-muted-foreground">EPS:</span>
-                      <span className="font-medium">{(stockData.price / stockData.pe).toFixed(2)}</span>
-                    </div>
-                    <div className="flex justify-between">
-                      <span className="text-muted-foreground">Earnings:</span>
-                      <span className="font-medium">Nov 3, 2025</span>
-                    </div>
-                    <div className="flex justify-between">
-                      <span className="text-muted-foreground">Dividend:</span>
-                      <span className="font-medium">--</span>
-                    </div>
-                    <div className="flex justify-between">
-                      <span className="text-muted-foreground">Ex-Div:</span>
-                      <span className="font-medium">--</span>
-                    </div>
-                    <div className="flex justify-between">
-                      <span className="text-muted-foreground">1y Target:</span>
-                      <span className="font-medium">${(stockData.price * 0.8).toFixed(2)}</span>
-                    </div>
+                  <div className="flex justify-between">
+                    <span className="text-muted-foreground">Open:</span>
+                    <span className="font-medium">${stockData.open.toFixed(2)}</span>
+                  </div>
+                  <div className="flex justify-between">
+                    <span className="text-muted-foreground">Bid:</span>
+                    <span className="font-medium">${(stockData.price - 0.1).toFixed(2)} x 500</span>
+                  </div>
+                  <div className="flex justify-between">
+                    <span className="text-muted-foreground">Ask:</span>
+                    <span className="font-medium">${(stockData.price + 0.1).toFixed(2)} x 1000</span>
+                  </div>
+                  <div className="flex justify-between">
+                    <span className="text-muted-foreground">Day's Range:</span>
+                    <span className="font-medium">${stockData.low.toFixed(2)} - ${stockData.high.toFixed(2)}</span>
+                  </div>
+                  <div className="flex justify-between">
+                    <span className="text-muted-foreground">52W Range:</span>
+                    <span className="font-medium">${(stockData.low * 0.3).toFixed(2)} - ${(stockData.high * 1.1).toFixed(2)}</span>
+                  </div>
+                  <div className="flex justify-between">
+                    <span className="text-muted-foreground">Volume:</span>
+                    <span className="font-medium">{stockData.volume.toLocaleString()}</span>
+                  </div>
+                  <div className="flex justify-between">
+                    <span className="text-muted-foreground">Avg. Volume:</span>
+                    <span className="font-medium">{(stockData.volume * 0.6).toLocaleString()}</span>
+                  </div>
+                </div>
+                <div className="space-y-1">
+                  <div className="flex justify-between">
+                    <span className="text-muted-foreground">Market Cap:</span>
+                    <span className="font-medium">${(stockData.marketCap / 1_000_000_000).toFixed(2)}B</span>
+                  </div>
+                  <div className="flex justify-between">
+                    <span className="text-muted-foreground">Beta:</span>
+                    <span className="font-medium">2.25</span>
+                  </div>
+                  <div className="flex justify-between">
+                    <span className="text-muted-foreground">PE Ratio:</span>
+                    <span className="font-medium">{stockData.pe.toFixed(2)}</span>
+                  </div>
+                  <div className="flex justify-between">
+                    <span className="text-muted-foreground">EPS:</span>
+                    <span className="font-medium">{(stockData.price / stockData.pe).toFixed(2)}</span>
+                  </div>
+                  <div className="flex justify-between">
+                    <span className="text-muted-foreground">Earnings:</span>
+                    <span className="font-medium">Nov 3, 2025</span>
+                  </div>
+                  <div className="flex justify-between">
+                    <span className="text-muted-foreground">Dividend:</span>
+                    <span className="font-medium">--</span>
+                  </div>
+                  <div className="flex justify-between">
+                    <span className="text-muted-foreground">Ex-Div:</span>
+                    <span className="font-medium">--</span>
+                  </div>
+                  <div className="flex justify-between">
+                    <span className="text-muted-foreground">1y Target:</span>
+                    <span className="font-medium">${(stockData.price * 0.8).toFixed(2)}</span>
                   </div>
                 </div>
               </div>
-            </Card>
-          </div>
-        )}
-      </div>
+            </div>
+          </Card>
+        </div>
+      )}
 
       {/* Time Labels */}
       <div className="flex justify-between mt-2 text-xs text-muted-foreground">
