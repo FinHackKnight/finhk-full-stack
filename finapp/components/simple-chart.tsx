@@ -117,7 +117,7 @@ export function SimpleChart({ symbol, stockData }: SimpleChartProps) {
   const dateRanges: DateRange[] = ['1D', '5D', '1M', '6M', 'YTD', '1Y', '5Y', 'All']
 
   return (
-    <div className="p-4 rounded-xl bg-gradient-to-br from-slate-500/10 to-slate-600/5 border border-slate-500/20 hover:border-slate-500/40 transition-all duration-300 hover:shadow-lg">
+    <div className="relative p-4 rounded-xl bg-gradient-to-br from-slate-500/10 to-slate-600/5 border border-slate-500/20 hover:border-slate-500/40 transition-all duration-300 hover:shadow-lg">
       <div className="flex items-center justify-between mb-4">
         <h3 className="text-lg font-semibold text-slate-600 dark:text-slate-400">
           {symbol} Price Chart
@@ -214,7 +214,7 @@ export function SimpleChart({ symbol, stockData }: SimpleChartProps) {
 
       {/* Detailed Table - Shows on Hover */}
       {showTooltip && (
-        <div className="mt-4 p-4 bg-gradient-to-br from-slate-50 to-slate-100 dark:from-slate-800 dark:to-slate-900 rounded-lg border border-slate-200 dark:border-slate-700">
+        <div className="absolute top-full left-0 right-0 z-50 mt-2 p-4 bg-gradient-to-br from-slate-50 to-slate-100 dark:from-slate-800 dark:to-slate-900 rounded-lg border border-slate-200 dark:border-slate-700 shadow-lg">
           <h4 className="text-sm font-semibold text-slate-700 dark:text-slate-300 mb-3">Detailed Financial Data</h4>
           <div className="grid grid-cols-2 gap-4 text-xs">
             <div className="space-y-2">
