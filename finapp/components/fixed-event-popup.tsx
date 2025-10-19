@@ -1,11 +1,38 @@
 "use client";
 
 import type { EventWithMarkets } from "@/lib/mock-data";
-import { TrendingUp, TrendingDown } from "lucide-react";
+import { TrendingUp, TrendingDown, MapPin } from "lucide-react";
 
 interface FixedEventPopupProps {
   event: EventWithMarkets | null;
 }
+
+// Helper to get country name from code
+const getCountryName = (code: string): string => {
+  const countryNames: Record<string, string> = {
+    'US': 'United States',
+    'GB': 'United Kingdom',
+    'CA': 'Canada',
+    'FR': 'France',
+    'DE': 'Germany',
+    'JP': 'Japan',
+    'CN': 'China',
+    'IN': 'India',
+    'KR': 'South Korea',
+    'AU': 'Australia',
+    'BR': 'Brazil',
+    'MX': 'Mexico',
+    'SG': 'Singapore',
+    'HK': 'Hong Kong',
+    'IT': 'Italy',
+    'ES': 'Spain',
+    'NL': 'Netherlands',
+    'SE': 'Sweden',
+    'CH': 'Switzerland',
+    'NO': 'Norway',
+  };
+  return countryNames[code.toUpperCase()] || code || 'Unknown';
+};
 
 export function FixedEventPopup({ event }: FixedEventPopupProps) {
   if (!event) return null;
@@ -22,6 +49,8 @@ export function FixedEventPopup({ event }: FixedEventPopupProps) {
     high: "bg-rose-500 text-rose-950",
   };
 
+  const countryDisplay = getCountryName(event.location.country);
+
   return (
     <div
       className={`w-80 rounded-lg border bg-card/90 backdrop-blur-sm shadow-2xl pointer-events-none animate-in fade-in-0 zoom-in-95 duration-200 ${
@@ -30,14 +59,15 @@ export function FixedEventPopup({ event }: FixedEventPopupProps) {
       style={{
         position: "fixed",
         top: "8rem",
-        left: "25rem",
+        right: "2rem",
+        bottom: '32rem',
         zIndex: 99999,
       }}
     >
       <div className="p-4 space-y-3">
         <div className="space-y-2">
           <div className="flex items-start justify-between gap-2">
-            <h3 className="font-semibold text-base leading-tight">
+            <h3 className="font-semibold text-base leading-tight text-foreground">
               {event.title}
             </h3>
             <span
@@ -48,9 +78,10 @@ export function FixedEventPopup({ event }: FixedEventPopupProps) {
               {event.impactLevel}
             </span>
           </div>
-          <p className="text-sm text-muted-foreground">
-            {event.location.country}
-          </p>
+          <div className="flex items-center gap-1 text-sm text-muted-foreground">
+            <MapPin className="w-3.5 h-3.5" />
+            <span>{countryDisplay}</span>
+          </div>
         </div>
 
         <div className="space-y-2">
@@ -58,12 +89,12 @@ export function FixedEventPopup({ event }: FixedEventPopupProps) {
             Affected Markets
           </p>
           <div className="space-y-1.5">
-            {event.affectedMarkets.map((market) => (
+            {event.affectedMarkets.map((market, index) => (
               <div
-                key={market.symbol}
+                key={`${market.symbol}-${index}`}
                 className="flex items-center justify-between text-sm"
               >
-                <span className="font-mono font-medium text-white">
+                <span className="font-mono font-medium text-foreground">
                   {market.symbol}
                 </span>
                 <div className="flex items-center gap-1.5">

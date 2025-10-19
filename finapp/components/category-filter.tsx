@@ -6,12 +6,12 @@ import { Button } from "@/components/ui/button"
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover"
 
 const categories = [
-  { id: "oil", label: "Oil & Energy", color: "bg-amber-500" },
-  { id: "education", label: "Education", color: "bg-blue-500" },
-  { id: "environment", label: "Environment", color: "bg-emerald-500" },
-  { id: "technology", label: "Technology", color: "bg-purple-500" },
-  { id: "politics", label: "Politics", color: "bg-rose-500" },
-  { id: "economy", label: "Economy", color: "bg-cyan-500" },
+  { id: "political", label: "Political", color: "bg-rose-500" },
+  { id: "economic", label: "Economic", color: "bg-cyan-500" },
+  { id: "environmental", label: "Environmental", color: "bg-emerald-500" },
+  { id: "tech", label: "Technology", color: "bg-purple-500" },
+  { id: "finance", label: "Finance", color: "bg-amber-500" },
+  { id: "climate", label: "Climate", color: "bg-blue-500" },
 ]
 
 interface CategoryFilterProps {
