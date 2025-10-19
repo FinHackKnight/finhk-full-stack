@@ -22,10 +22,11 @@ export async function POST(request: NextRequest) {
     }
 
     return NextResponse.json({ success: true, response: text, sources: [] });
-  } catch (error) {
+  } catch (error: any) {
     console.error('API Error:', error);
+    const msg = error?.message || 'Failed to generate content';
     return NextResponse.json(
-      { error: 'Failed to generate content' },
+      { error: msg },
       { status: 500 }
     );
   }

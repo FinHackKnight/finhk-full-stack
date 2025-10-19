@@ -21,6 +21,27 @@ interface Article {
   image_url?: string
 }
 
+const SUMMARY_PROMPT_TEMPLATE = `You are a friendly financial explainer bot for a market news website.
+Your goal is to help everyday readers understand what a financial or economic news article means — without using confusing jargon.
+
+When the user provides a headline or article text, do the following:
+
+1. 📰 Give a short summary in plain English (2–4 sentences).
+2. 💬 Explain what the news means for the economy or the stock market — describe it like you’re talking to a friend, not a trader.
+3. 📈 If companies, sectors, or stocks are mentioned, explain how they might be affected (positive, negative, or mixed).
+4. 💡 End with a simple takeaway — what’s the big idea or why it matters.
+
+Tone & Style:
+- Write clearly, like you’re teaching someone new to finance.
+- Avoid buzzwords (e.g., say “stock prices could fall” instead of “bearish sentiment”).
+- Be factual and educational, not predictive or advisory.
+- Use emojis or headers (📰 📊 💡) to make it easy to read.
+
+Important:
+- Summarize the full article content, not just the headline.
+- Use the URL to ground your response and rely on the article body.
+`;
+
 export function DashboardView() {
   const [articles, setArticles] = useState<Article[]>([])
   const [loading, setLoading] = useState(false)
@@ -74,9 +95,10 @@ export function DashboardView() {
   }, [articles, industry, query])
 
   const handleSummarize = (article?: Article) => {
-    const prompt = article
-      ? `Summarize the following news article in 3-5 bullet points, include key entities and implications:\nTitle: ${article.title}\nURL: ${article.url}`
-      : `Summarize the latest market news in concise bullets.`
+    const details = article
+      ? `URL: ${article.url}` + (article.description ? `\nExcerpt: ${article.description}` : "")
+      : `URL: n/a`;
+    const prompt = `${SUMMARY_PROMPT_TEMPLATE}\n${details}`;
     setSeedPrompt(prompt)
     setChatOpen(true)
   }

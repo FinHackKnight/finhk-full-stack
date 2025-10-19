@@ -6,6 +6,8 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Card } from '@/components/ui/card';
 import { X, Send } from 'lucide-react';
+import ReactMarkdown from 'react-markdown';
+import remarkGfm from 'remark-gfm';
 
 export interface GeminiChatSidebarProps {
   open: boolean;
@@ -96,7 +98,6 @@ export function GeminiChat({ open, onOpenChange, initialPrompt }: GeminiChatSide
       await new Promise((r) => setTimeout(r, 20));
     }
 
-    // finalize: remove typing flag
     setMessages((m) => {
       const idx = m.findIndex((x) => x.typing);
       if (idx === -1) return m;
@@ -192,13 +193,17 @@ export function GeminiChat({ open, onOpenChange, initialPrompt }: GeminiChatSide
           {messages.map((m, idx) => (
             <div key={idx} className={`flex ${m.role === 'user' ? 'justify-end' : 'justify-start'}`}>
               <div
-                className={`max-w-[85%] rounded-2xl px-3 py-2 text-sm whitespace-pre-wrap shadow-sm ${
+                className={`max-w-[85%] rounded-2xl px-3 py-2 text-sm whitespace-pre-wrap shadow-sm prose prose-sm dark:prose-invert prose-headings:mt-2 prose-p:my-2 prose-strong:font-semibold ${
                   m.role === 'user'
-                    ? 'bg-primary text-primary-foreground rounded-br-sm'
+                    ? 'bg-primary text-primary-foreground rounded-br-sm prose-invert'
                     : 'bg-muted text-foreground rounded-bl-sm'
                 }`}
               >
-                {m.content}
+                {m.role === 'assistant' ? (
+                  <ReactMarkdown remarkPlugins={[remarkGfm]}>{m.content}</ReactMarkdown>
+                ) : (
+                  <span>{m.content}</span>
+                )}
                 {m.typing && <span className="ml-1 inline-block w-2 h-2 rounded-full bg-foreground/60 animate-pulse" />}
               </div>
             </div>

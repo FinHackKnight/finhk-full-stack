@@ -1,11 +1,14 @@
 import { GoogleGenAI } from '@google/genai';
 
-if (!process.env.GEMINI_API_KEY) {
-  throw new Error('GEMINI_API_KEY is not defined in environment variables');
-}
+const API_KEY = process.env.GEMINI_API_KEY;
 
-// Initialize the new SDK
-const ai = new GoogleGenAI({ apiKey: process.env.GEMINI_API_KEY });
+// Initialize the SDK lazily to avoid crashing import-time when key is missing
+let ai: GoogleGenAI | null = null;
+function getClient() {
+  if (!API_KEY) return null;
+  if (!ai) ai = new GoogleGenAI({ apiKey: API_KEY });
+  return ai;
+}
 
 // Google grounding tool
 const groundingTool = {
@@ -19,14 +22,15 @@ const defaultConfig = {
 export type ChatHistoryItem = { role: 'user' | 'assistant' | 'model'; content: string };
 
 export async function generateContent(prompt: string) {
+  const client = getClient();
+  if (!client) throw new Error('GEMINI_API_KEY is not configured on the server');
   try {
-    const response = await ai.models.generateContent({
+    const response = await client.models.generateContent({
       model: 'gemini-2.5-flash',
       contents: prompt,
       config: defaultConfig as any,
     });
 
-    // Handle both SDK shapes (property or function)
     const r: any = response as any;
     let text = '';
     if (typeof r.text === 'string') text = r.text;
@@ -37,31 +41,20 @@ export async function generateContent(prompt: string) {
     return String(text || '');
   } catch (error: any) {
     console.error('Error generating grounded content with Gemini:', error);
-
-    const msg = error?.message || '';
-    if (msg.includes('404') || msg.includes('not found')) {
-      throw new Error('Model not available. Please check if the Gemini model is accessible with your API key.');
-    }
-    if (msg.toLowerCase().includes('api key')) {
-      throw new Error('Invalid API key. Please check your GEMINI_API_KEY environment variable.');
-    }
-    if (msg.includes('quota') || msg.includes('limit')) {
-      throw new Error('API quota exceeded. Please check your Gemini API usage limits.');
-    }
-
     throw error;
   }
 }
 
 export async function generateContentFromMessages(history: ChatHistoryItem[]) {
+  const client = getClient();
+  if (!client) throw new Error('GEMINI_API_KEY is not configured on the server');
   try {
-    // Map assistant role to model for the API if needed
     const contents = history.map((m) => ({
       role: m.role === 'assistant' ? 'model' : m.role,
       parts: [{ text: m.content }],
     })) as any;
 
-    const response = await ai.models.generateContent({
+    const response = await client.models.generateContent({
       model: 'gemini-2.5-flash',
       contents,
       config: defaultConfig as any,
