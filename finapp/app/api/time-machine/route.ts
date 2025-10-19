@@ -4,7 +4,6 @@ import { GoogleGenerativeAI } from "@google/generative-ai";
 const genAI = new GoogleGenerativeAI(process.env.GEMINI_API_KEY!);
 const MARKET_AUX_KEY = process.env.MARKETAUX_API_KEY!;
 const BATCH_SIZE = 2;
-const cache = new Map<string, any>();
 
 // --- Country centroid fallback map ---
 const COUNTRY_CENTROIDS: Record<string, { lat: number; lng: number }> = {
@@ -22,22 +21,25 @@ const COUNTRY_CENTROIDS: Record<string, { lat: number; lng: number }> = {
   MX: { lat: 23.6345, lng: -102.5528 },
   SG: { lat: 1.3521, lng: 103.8198 },
   HK: { lat: 22.3193, lng: 114.1694 },
-  // Add more if needed
 };
 
-// --- Simple hash for caching ---
-const hash = (obj: any) =>
-  JSON.stringify(obj)
-    .split("")
-    .reduce((a, b) => ((a << 5) - a + b.charCodeAt(0)) & 0xffffffff, 0)
-    .toString();
-
-// --- Fetch Marketaux articles ---
-async function fetchMarketaux() {
-  const url = `https://api.marketaux.com/v1/news/all?filter_entities=true&language=en&countries=us&limit=30&api_token=${MARKET_AUX_KEY}`;
+// --- Fetch Marketaux articles for a specific date ---
+async function fetchMarketauxByDate(date: string) {
+  // Date should be in YYYY-MM-DD format
+  // Filter for finance-related news with entities
+  const url = `https://api.marketaux.com/v1/news/all?filter_entities=true&language=en&countries=us&published_on=${date}&limit=50&api_token=${MARKET_AUX_KEY}`;
+  
+  console.log(`📅 Fetching Marketaux articles for ${date}`);
+  
   const res = await fetch(url);
-  if (!res.ok) throw new Error("Failed to fetch Marketaux news");
+  if (!res.ok) {
+    console.error(`Failed to fetch Marketaux news for ${date}: ${res.status}`);
+    throw new Error(`Failed to fetch Marketaux news for ${date}`);
+  }
+  
   const data = await res.json();
+  console.log(`✅ Marketaux returned ${data.data?.length || 0} articles for ${date}`);
+  
   return data.data || [];
 }
 
@@ -69,7 +71,6 @@ function formatDateOnly(dateString: string): string {
   try {
     const date = new Date(dateString);
     if (isNaN(date.getTime())) {
-      // Invalid date, return today's date
       return new Date().toISOString().split('T')[0];
     }
     return date.toISOString().split('T')[0];
@@ -79,7 +80,7 @@ function formatDateOnly(dateString: string): string {
 }
 
 // --- Gemini prompt ---
-const buildPrompt = (articles: any[]) => `
+const buildPrompt = (articles: any[], targetDate: string) => `
 You are a financial and market intelligence analyst. Analyze these ${articles.length} market news articles and produce structured market-impact events.
 
 Rules:
@@ -167,8 +168,8 @@ function parseGeminiResponse(text: string) {
 }
 
 // --- Process Gemini batch ---
-async function processBatch(articles: any[]) {
-  const prompt = buildPrompt(articles);
+async function processBatch(articles: any[], targetDate: string) {
+  const prompt = buildPrompt(articles, targetDate);
   const model = genAI.getGenerativeModel({ model: "gemini-2.5-flash" });
 
   try {
@@ -183,7 +184,7 @@ async function processBatch(articles: any[]) {
 }
 
 // --- Normalize Gemini events ---
-function normalizeGeminiEvent(e: any, country?: string) {
+function normalizeGeminiEvent(e: any, country?: string, targetDate?: string) {
   let longitude = e.event_longitude ?? null;
   let latitude = e.event_latitude ?? null;
   let eventCountry = e.event_country || country || "";
@@ -207,24 +208,44 @@ function normalizeGeminiEvent(e: any, country?: string) {
     Impact_reason: e.impact_reason || "",
     impact_color: e.impact_color || "yellow",
     Relevant_stocks: e.relevant_stocks || [],
-    event_date: formatDateOnly(e.event_date || new Date().toISOString()),
+    event_date: targetDate || formatDateOnly(e.event_date || new Date().toISOString()),
   };
 }
 
 // --- API handler ---
 export async function GET(request: Request) {
   try {
-    console.log(`📅 Fetching trending events`);
+    const { searchParams } = new URL(request.url);
+    const date = searchParams.get('date'); // Required: YYYY-MM-DD format
+
+    if (!date) {
+      return NextResponse.json(
+        { error: 'Date parameter is required (format: YYYY-MM-DD)' },
+        { status: 400 }
+      );
+    }
+
+    // Validate date format
+    const dateRegex = /^\d{4}-\d{2}-\d{2}$/;
+    if (!dateRegex.test(date)) {
+      return NextResponse.json(
+        { error: 'Invalid date format. Use YYYY-MM-DD' },
+        { status: 400 }
+      );
+    }
+
+    console.log(`🕰️  Time Machine: Fetching events for ${date}`);
+
+    // Fetch articles for the specific date
+    const raw = await fetchMarketauxByDate(date);
     
-    const raw = await fetchMarketaux();
+    if (!raw || raw.length === 0) {
+      console.log(`⚠️  No articles found for ${date}`);
+      return NextResponse.json([]);
+    }
+
     const trimmed = trimArticlesForGemini(raw);
     const filtered = trimmed.filter((a) => a.title);
-
-    const cacheKey = hash(filtered);
-    if (cache.has(cacheKey)) {
-      console.log("Using cached Gemini events");
-      return NextResponse.json(cache.get(cacheKey));
-    }
 
     const enriched = filtered.map((a) => ({
       ...a,
@@ -237,18 +258,21 @@ export async function GET(request: Request) {
       batches.push(enriched.slice(i, i + BATCH_SIZE));
     }
 
-    // Process in parallel
-    const responses = await Promise.allSettled(batches.map(processBatch));
+    // Process in parallel with Gemini
+    console.log(`🤖 Processing ${batches.length} batches with Gemini...`);
+    const responses = await Promise.allSettled(batches.map(batch => processBatch(batch, date)));
     const geminiEventsRaw = responses
       .filter((r) => r.status === "fulfilled")
       .flatMap((r: any) => r.value)
       .filter(Boolean);
 
+    console.log(`✅ Gemini processed ${geminiEventsRaw.length} events successfully`);
+
     const geminiEvents = geminiEventsRaw.map((e, idx) =>
-      normalizeGeminiEvent(e, enriched[idx]?.country)
+      normalizeGeminiEvent(e, enriched[idx]?.country, date)
     );
 
-    // Fallback for skipped articles
+    // Fallback for skipped articles (always include these in case Gemini hits rate limits)
     const geminiArticleUrls = new Set(geminiEvents.map((e) => e.Article_link));
     const fallbackEvents = enriched
       .filter((a) => !geminiArticleUrls.has(a.url))
@@ -274,18 +298,23 @@ export async function GET(request: Request) {
                   name: e.name || e.entity_name || "Unknown",
                 }))
               : [{ ticker: null, name: a.topic || "Unknown" }],
-          event_date: formatDateOnly(a.published_at || new Date().toISOString()),
+          event_date: date,
         };
       });
 
+    // Combine Gemini events with fallback events
     const allEvents = [...geminiEvents, ...fallbackEvents];
-    cache.set(cacheKey, allEvents);
 
-    console.log("✅ Final event count:", allEvents.length);
+    console.log(`✅ Time Machine: Generated ${allEvents.length} events for ${date} (${geminiEvents.length} from Gemini, ${allEvents.length - geminiEvents.length} fallback)`);
     console.log("📘 Sample event:", allEvents[0]);
+    
     return NextResponse.json(allEvents);
+    
   } catch (err) {
-    console.error("❌ Error generating events:", err);
-    return NextResponse.json({ error: "Failed to generate events" }, { status: 500 });
+    console.error("❌ Error in Time Machine API:", err);
+    return NextResponse.json(
+      { error: 'Failed to fetch historical events' },
+      { status: 500 }
+    );
   }
 }
