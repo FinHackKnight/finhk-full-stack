@@ -32,7 +32,6 @@ export function DashboardView() {
         </div>
 
         <StatsOverview />
-
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-4">
           <div className="lg:col-span-2">
             <MarketChart
@@ -42,7 +41,7 @@ export function DashboardView() {
               changePercent={1.03}
               color="hsl(var(--chart-1))"
             />
-          </div>
+          </div> 
           <div className="lg:col-span-1">
             <ActivityFeed />
           </div>
