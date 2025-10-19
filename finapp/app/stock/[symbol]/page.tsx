@@ -228,46 +228,31 @@ export default function StockProfilePage() {
                 <h2 className="text-2xl font-bold bg-gradient-to-r from-foreground to-muted-foreground bg-clip-text text-transparent">Overview</h2>
               </div>
               
-              {/* Key Metrics Grid */}
-              <div className="grid grid-cols-2 gap-4">
-                <div className="group p-4 rounded-xl bg-gradient-to-br from-blue-500/10 to-blue-600/5 border border-blue-500/20 hover:border-blue-500/40 transition-all duration-300 hover:shadow-lg hover:shadow-blue-500/10">
-                  <div className="flex items-center gap-3 mb-3">
-                    <div className="w-8 h-8 rounded-lg bg-gradient-to-br from-blue-500 to-blue-600 flex items-center justify-center">
-                      <DollarSign className="w-4 h-4 text-white" />
-                    </div>
-                    <span className="text-sm font-medium text-muted-foreground">Market Cap</span>
+              {/* Company Information */}
+              <div className="group p-3 rounded-lg bg-gradient-to-br from-slate-500/10 to-slate-600/5 border border-slate-500/20 hover:border-slate-500/40 transition-all duration-300">
+                <div className="flex items-center gap-2 mb-2">
+                  <div className="w-5 h-5 rounded-md bg-gradient-to-br from-slate-500 to-slate-600 flex items-center justify-center">
+                    <Globe className="w-3 h-3 text-white" />
                   </div>
-                  <div className="text-lg font-bold text-blue-600 dark:text-blue-400">{stockData ? formatNumber(stockData.marketCap) : "N/A"}</div>
+                  <h3 className="text-base font-semibold">Company Information</h3>
                 </div>
-
-                <div className="group p-4 rounded-xl bg-gradient-to-br from-green-500/10 to-green-600/5 border border-green-500/20 hover:border-green-500/40 transition-all duration-300 hover:shadow-lg hover:shadow-green-500/10">
-                  <div className="flex items-center gap-3 mb-3">
-                    <div className="w-8 h-8 rounded-lg bg-gradient-to-br from-green-500 to-green-600 flex items-center justify-center">
-                      <BarChart3 className="w-4 h-4 text-white" />
-                    </div>
-                    <span className="text-sm font-medium text-muted-foreground">P/E Ratio</span>
+                <div className="space-y-2">
+                  <div className="flex justify-between items-center py-1 border-b border-slate-500/10">
+                    <span className="text-xs text-muted-foreground">Sector</span>
+                    <span className="text-sm font-semibold text-slate-600 dark:text-slate-400">{stockData?.sector || "N/A"}</span>
                   </div>
-                  <div className="text-lg font-bold text-green-600 dark:text-green-400">{stockData?.pe ? stockData.pe.toFixed(2) : "N/A"}</div>
-                </div>
-
-                <div className="group p-4 rounded-xl bg-gradient-to-br from-purple-500/10 to-purple-600/5 border border-purple-500/20 hover:border-purple-500/40 transition-all duration-300 hover:shadow-lg hover:shadow-purple-500/10">
-                  <div className="flex items-center gap-3 mb-3">
-                    <div className="w-8 h-8 rounded-lg bg-gradient-to-br from-purple-500 to-purple-600 flex items-center justify-center">
-                      <Volume className="w-4 h-4 text-white" />
-                    </div>
-                    <span className="text-sm font-medium text-muted-foreground">Volume</span>
+                  <div className="flex justify-between items-center py-1 border-b border-slate-500/10">
+                    <span className="text-xs text-muted-foreground">Industry</span>
+                    <span className="text-sm font-semibold text-slate-600 dark:text-slate-400">{stockData?.industry || "N/A"}</span>
                   </div>
-                  <div className="text-lg font-bold text-purple-600 dark:text-purple-400">{stockData ? formatNumber(stockData.volume) : "N/A"}</div>
-                </div>
-
-                <div className="group p-4 rounded-xl bg-gradient-to-br from-orange-500/10 to-orange-600/5 border border-orange-500/20 hover:border-orange-500/40 transition-all duration-300 hover:shadow-lg hover:shadow-orange-500/10">
-                  <div className="flex items-center gap-3 mb-3">
-                    <div className="w-8 h-8 rounded-lg bg-gradient-to-br from-orange-500 to-orange-600 flex items-center justify-center">
-                      <Target className="w-4 h-4 text-white" />
-                    </div>
-                    <span className="text-sm font-medium text-muted-foreground">52W High</span>
+                  <div className="flex justify-between items-center py-1 border-b border-slate-500/10">
+                    <span className="text-xs text-muted-foreground">Open</span>
+                    <span className="text-sm font-semibold text-slate-600 dark:text-slate-400">{stockData ? formatCurrency(stockData.open) : "N/A"}</span>
                   </div>
-                  <div className="text-lg font-bold text-orange-600 dark:text-orange-400">{stockData ? formatCurrency(stockData.high) : "N/A"}</div>
+                  <div className="flex justify-between items-center py-1">
+                    <span className="text-xs text-muted-foreground">Previous Close</span>
+                    <span className="text-sm font-semibold text-slate-600 dark:text-slate-400">{stockData ? formatCurrency(stockData.previousClose) : "N/A"}</span>
+                  </div>
                 </div>
               </div>
 
@@ -288,64 +273,6 @@ export default function StockProfilePage() {
                 </div>
               )}
 
-              {/* Company Information */}
-              <div className="space-y-6">
-                <div className="group p-5 rounded-xl bg-gradient-to-br from-slate-500/10 to-slate-600/5 border border-slate-500/20 hover:border-slate-500/40 transition-all duration-300 hover:shadow-lg">
-                  <div className="flex items-center gap-3 mb-4">
-                    <div className="w-6 h-6 rounded-lg bg-gradient-to-br from-slate-500 to-slate-600 flex items-center justify-center">
-                      <Globe className="w-3 h-3 text-white" />
-                    </div>
-                    <h3 className="text-lg font-semibold">Company Information</h3>
-                  </div>
-                  <div className="space-y-3">
-                    <div className="flex justify-between items-center py-2 border-b border-slate-500/10">
-                      <span className="text-sm text-muted-foreground">Sector</span>
-                      <span className="font-semibold text-slate-600 dark:text-slate-400">{stockData?.sector || "N/A"}</span>
-                    </div>
-                    <div className="flex justify-between items-center py-2 border-b border-slate-500/10">
-                      <span className="text-sm text-muted-foreground">Industry</span>
-                      <span className="font-semibold text-slate-600 dark:text-slate-400">{stockData?.industry || "N/A"}</span>
-                    </div>
-                    <div className="flex justify-between items-center py-2 border-b border-slate-500/10">
-                      <span className="text-sm text-muted-foreground">Open</span>
-                      <span className="font-semibold text-slate-600 dark:text-slate-400">{stockData ? formatCurrency(stockData.open) : "N/A"}</span>
-                    </div>
-                    <div className="flex justify-between items-center py-2">
-                      <span className="text-sm text-muted-foreground">Previous Close</span>
-                      <span className="font-semibold text-slate-600 dark:text-slate-400">{stockData ? formatCurrency(stockData.previousClose) : "N/A"}</span>
-                    </div>
-                  </div>
-                </div>
-
-                <div className="group p-5 rounded-xl bg-gradient-to-br from-emerald-500/10 to-emerald-600/5 border border-emerald-500/20 hover:border-emerald-500/40 transition-all duration-300 hover:shadow-lg">
-                  <div className="flex items-center gap-3 mb-4">
-                    <div className="w-6 h-6 rounded-lg bg-gradient-to-br from-emerald-500 to-emerald-600 flex items-center justify-center">
-                      <Activity className="w-3 h-3 text-white" />
-                    </div>
-                    <h3 className="text-lg font-semibold">Trading Information</h3>
-                  </div>
-                  <div className="space-y-3">
-                    <div className="flex justify-between items-center py-2 border-b border-emerald-500/10">
-                      <span className="text-sm text-muted-foreground">Day High</span>
-                      <span className="font-semibold text-green-600 dark:text-green-400">{stockData ? formatCurrency(stockData.high) : "N/A"}</span>
-                    </div>
-                    <div className="flex justify-between items-center py-2 border-b border-emerald-500/10">
-                      <span className="text-sm text-muted-foreground">Day Low</span>
-                      <span className="font-semibold text-red-600 dark:text-red-400">{stockData ? formatCurrency(stockData.low) : "N/A"}</span>
-                    </div>
-                    <div className="flex justify-between items-center py-2 border-b border-emerald-500/10">
-                      <span className="text-sm text-muted-foreground">Change</span>
-                      <span className={`font-semibold ${stockData?.change && stockData.change > 0 ? "text-green-600 dark:text-green-400" : "text-red-600 dark:text-red-400"}`}>
-                        {stockData ? formatCurrency(stockData.change) : "N/A"}
-                      </span>
-                    </div>
-                    <div className="flex justify-between items-center py-2">
-                      <span className="text-sm text-muted-foreground">Volume</span>
-                      <span className="font-semibold text-emerald-600 dark:text-emerald-400">{stockData ? formatNumber(stockData.volume) : "N/A"}</span>
-                    </div>
-                  </div>
-                </div>
-              </div>
             </div>
 
             {/* News Section */}
