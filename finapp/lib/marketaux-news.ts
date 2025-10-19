@@ -30,6 +30,11 @@ export interface NewsQueryParams {
   filter_entities?: boolean;
   published_after?: string; // ISO string
   published_before?: string; // ISO string
+  // New advanced filters
+  search?: string; // e.g. ("earnings"|"guidance"|...)
+  industries?: string[]; // e.g. ['Technology','Energy']
+  domains?: string[]; // e.g. ['reuters.com','wsj.com']
+  group_similar?: boolean;
 }
 
 const API_BASE = process.env.MARKETAUX_API_BASE_URL || 'https://api.marketaux.com/v1/news/all';
@@ -105,6 +110,12 @@ class MarketAuxService {
     if (typeof params.filter_entities === 'boolean') url.searchParams.set('filter_entities', String(params.filter_entities));
     if (params.published_after) url.searchParams.set('published_after', params.published_after);
     if (params.published_before) url.searchParams.set('published_before', params.published_before);
+
+    // New advanced filters
+    if (params.search) url.searchParams.set('search', params.search);
+    if (params.industries?.length) url.searchParams.set('industries', toComma(params.industries)!);
+    if (params.domains?.length) url.searchParams.set('domains', toComma(params.domains)!);
+    if (typeof params.group_similar === 'boolean') url.searchParams.set('group_similar', String(params.group_similar));
 
     const resp = await fetch(url.toString());
     if (!resp.ok) {
