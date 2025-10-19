@@ -13,18 +13,12 @@ function ScrollArea({
   return (
     <ScrollAreaPrimitive.Root
       data-slot="scroll-area"
-      className={cn(
-        "relative flex-1 overflow-hidden", // ensure it fills container and hides native scroll
-        className
-      )}
+      className={cn("relative", className)}
       {...props}
     >
       <ScrollAreaPrimitive.Viewport
         data-slot="scroll-area-viewport"
-        className={cn(
-          "h-full w-full rounded-[inherit] focus-visible:outline-none focus-visible:ring-3 focus-visible:ring-ring/50 transition-[color,box-shadow] overflow-auto",
-          // overflow-auto enables scrolling
-        )}
+        className="focus-visible:ring-ring/50 size-full rounded-[inherit] transition-[color,box-shadow] outline-none focus-visible:ring-[3px] focus-visible:outline-1"
       >
         {children}
       </ScrollAreaPrimitive.Viewport>
