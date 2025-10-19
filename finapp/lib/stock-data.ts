@@ -32,14 +32,30 @@ function generateTicker(): string {
 export function generateMockChartData(
   base: number = 100,
   volatility: number = 5,
-  points: number = 24
+  points: number = 24,
+  timeframe: "1D" | "1W" | "1M" | "3M" = "1D"
 ): MarketData[] {
   const data: MarketData[] = [];
   let value = base;
   for (let i = 0; i < points; i++) {
     value += (Math.random() - 0.5) * volatility;
+
+    let timeLabel = "";
+    switch (timeframe) {
+      case "1D":
+        timeLabel = `${i}:00`;
+        break;
+      case "1W":
+        timeLabel = `Day ${i + 1}`;
+        break;
+      case "1M":
+      case "3M":
+        timeLabel = `${i + 1}`;
+        break;
+    }
+
     data.push({
-      time: `${i}:00`,
+      time: timeLabel,
       value: parseFloat(value.toFixed(2)),
     });
   }
@@ -63,7 +79,8 @@ export function generateMockStocks(
       chartData: generateMockChartData(
         100 + i * 10,
         volatility,
-        pointsMap[timeframe]
+        pointsMap[timeframe],
+        timeframe
       ),
       change: changePercent,
       changePercent: changePercent,
