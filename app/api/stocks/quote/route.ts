@@ -103,7 +103,6 @@ export async function GET(req: Request) {
       .sort(([a], [b]) => new Date(a).getTime() - new Date(b).getTime())
       .slice(-sliceCount);
 
-    const firstClose = parseFloat(entries[0][1]["4. close"]);
 
     const chartData: MarketData[] = entries.map(([time, val]) => {
       const v = val as Record<string, string>;

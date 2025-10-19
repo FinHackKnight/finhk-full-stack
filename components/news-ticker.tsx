@@ -3,7 +3,6 @@
 import { useEffect, useState } from "react"
 import { Badge } from "@/components/ui/badge"
 import { useNews } from "@/lib/hooks/use-news"
-import type { NewsItem } from "@/lib/marketaux-news"
 
 function getRelativeTime(dateString: string): string {
   const date = new Date(dateString);

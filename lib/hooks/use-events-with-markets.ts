@@ -1,7 +1,7 @@
 "use client";
 
 import { useMemo } from "react";
-import { useEvents, type ApiEvent } from "@/lib/hooks/use-events";
+import { useEvents, type APIEvent as ApiEvent } from "@/lib/hooks/use-events";
 import type { EventWithMarkets } from "@/lib/mock-data";
 
 function mapCategoryToType(category?: string): EventWithMarkets["type"] {
@@ -43,7 +43,7 @@ function toEventWithMarkets(e: ApiEvent, index: number): EventWithMarkets {
     type: mapCategoryToType(e.event_category),
     location: {
       lat: Number(e.event_latitude) || 0,
-      lng: Number(e.Event_longtitude) || 0,
+      lng: Number(e.Event_longitude) || 0,
       country: inferCountry(e) || "",
     },
     impact: impact10,
@@ -56,12 +56,12 @@ function toEventWithMarkets(e: ApiEvent, index: number): EventWithMarkets {
     articles: [
       { title: e.Event_title, source: "", url: e.Article_link },
     ],
-    relevantStocks: (e.Relevant_stocks || []).map((s) => ({
+    relevantStocks: (e.Relevant_stocks || []).map((s:any) => ({
       symbol: s.ticker,
       name: s.name,
       changePercent: 0,
     })),
-    affectedMarkets: (e.Relevant_stocks || []).slice(0, 4).map((s) => ({
+    affectedMarkets: (e.Relevant_stocks || []).slice(0, 4).map((s:any) => ({
       symbol: s.ticker,
       name: s.name,
       changePercent: 0,
@@ -70,12 +70,14 @@ function toEventWithMarkets(e: ApiEvent, index: number): EventWithMarkets {
 }
 
 export function useEventsWithMarkets(limit = 20, llm_limit = 5) {
-  const { events, loading, error } = useEvents({ limit, llm_limit });
+  const { events, loading, error, refetch } = useEvents({ limit, llm_limit });
 
-  const mapped: EventWithMarkets[] = useMemo(() => {
+  // Optional: slice to limit number of events
+  const mapped = useMemo(() => {
     if (!events) return [];
-    return events.map(toEventWithMarkets);
-  }, [events]);
+    return events.slice(0, limit); // already EventWithMarkets[]
+  }, [events, limit]);
 
-  return { events: mapped, loading, error } as const;
+  return { events: mapped, loading, error, refetch } as const;
 }
+

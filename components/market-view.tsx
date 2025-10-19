@@ -1,38 +1,21 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState } from "react";
 import { MarketChart, MarketData } from "@/components/market-chart";
 import { MarketIndicators } from "@/components/market-indicators";
 import { EventImpactList } from "@/components/event-impact-list";
-import { EventCard } from "@/components/event-card";
 import { mockEventsWithMarkets } from "@/lib/mock-data";
 import type { EventWithMarkets } from "@/lib/mock-data";
-import { ScrollArea } from "@/components/ui/scroll-area";
 import { generateMockStocks } from "@/lib/stock-data";
-import { Card } from "@/components/ui/card";
-import { Badge } from "@/components/ui/badge";
 import {
   TrendingUp,
   TrendingDown,
   Activity,
-  Globe,
-  Zap,
-  AlertTriangle,
-  DollarSign,
-  BarChart3,
 } from "lucide-react";
 import { Search } from "lucide-react";
 import { Input } from "./ui/input";
 import { Button } from "./ui/button";
 
-interface Stock {
-  ticker: string;
-  price: number;
-  change_amount: number;
-  change_percentage: number;
-  volume: number;
-  chartData?: MarketData[];
-}
 // Market sentiment data
 const marketSentiment = {
   overall: "Bullish",
@@ -69,7 +52,7 @@ export function MarketView() {
 
   // Simple refresh using mocks for the selected timeframe
   const refreshStocks = () => {
-    setStocks(generateMockStocks(9, activeTimeframe));
+    setStocks(generateMockStocks(9));
   };
 
   // Get recent events (last 10)
@@ -178,7 +161,7 @@ export function MarketView() {
                     key={tf}
                     onClick={() => {
                       setActiveTimeframe(tf); // update state
-                      setStocks(generateMockStocks(9, tf)); // regenerate mock stocks
+                      setStocks(generateMockStocks(9)); // regenerate mock stocks
                     }}
                     className={`px-3 py-1.5 text-sm rounded-md ${
                       activeTimeframe === tf
@@ -194,24 +177,34 @@ export function MarketView() {
           </div>
 
           {/* Data grid */}
-          {stocks && stocks.length > 0 ? (
-            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
-              {stocks.map((s, i) => (
-                <MarketChart
-                  key={`${s.ticker}-${i}`}
-                  title={s.ticker}
-                  data={s.chartData || []}
-                  change={s.change}
-                  changePercent={s.changePercent}
-                  color={getRandomColor()}
-                />
-              ))}
-            </div>
-          ) : (
-            <p className="text-muted-foreground text-sm">
-              Loading top stocks...
-            </p>
-          )}
+{stocks && stocks.length > 0 ? (
+  <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
+    {stocks.map((s, i) => {
+      // Transform stock history or create minimal chart data
+      const chartData = s.chartData?.map((h: any) => ({
+        time: h.date,   // or h.timestamp depending on your data
+        value: h.close, // or h.price
+      })) || [
+        // fallback minimal chart data if chartData is missing
+        { time: "Start", value: s.change },
+        { time: "End", value: s.change + s.changePercent },
+      ];
+
+      return (
+        <MarketChart
+          key={`${s.symbol}-${i}`}
+          title={s.symbol}
+          data={chartData}
+          change={s.change}
+          changePercent={s.changePercent}
+          color={getRandomColor()}
+        />
+      );
+    })}
+  </div>
+) : null}
+
+
         </div>
 
         {/* Sector Analysis Section */}

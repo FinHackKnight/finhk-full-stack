@@ -59,7 +59,7 @@ export function EventCard({ event, onHover, onClick }: EventCardProps) {
 
   return (
     <div
-      className={`p-3 rounded-lg border cursor-pointer transition-all duration-300 hover:scale-[1.02] hover:shadow-lg ${impactColors[event.impactLevel]}`}
+      className={`p-2 rounded-lg border cursor-pointer transition-all duration-300 hover:scale-[1.02] hover:shadow-lg ${impactColors[event.impactLevel]}`}
       onMouseEnter={handleMouseEnter}
       onMouseLeave={handleMouseLeave}
       onClick={handleClick}

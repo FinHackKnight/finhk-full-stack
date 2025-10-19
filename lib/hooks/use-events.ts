@@ -3,7 +3,7 @@
 import { useState, useEffect, useCallback } from 'react'
 import type { EventWithMarkets } from '@/lib/mock-data'
 
-type APIEvent = {
+export type APIEvent = {
   Event_title: string
   Event_img: string
   Event_longitude: number
@@ -33,6 +33,8 @@ interface UseEventsReturn {
 
 interface UseEventsOptions {
   date?: Date;
+    limit?: number;
+  llm_limit?: number;
 }
 
 const CACHE_KEY = 'finapp_events_cache';
