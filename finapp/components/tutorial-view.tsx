@@ -15,7 +15,9 @@ import {
 	PlayCircle,
 	LineChart,
 	BarChart3,
+	Sparkles,
 } from "lucide-react"
+import GeminiChat from "@/components/gemini-chat"
 
 interface Lesson {
   id: string
@@ -189,11 +191,22 @@ export function TutorialView() {
 	const total = lessonsData.length
 	const progress = ((index + 1) / total) * 100
 
-	const goNext = () => {
+  // Chat state
+  const [chatOpen, setChatOpen] = useState(false)
+  const [chatPrompt, setChatPrompt] = useState<string | undefined>(undefined)
+
+  const goNext = () => {
 		if (index < total - 1) {
 			setActive(lessonsData[index + 1].id)
 		}
 	}
+
+  const handleAskAI = () => {
+    const lesson = lessonsData[index]
+    const prompt = `Teach me more about: ${lesson.title}. Use simple bullets and give 2 practical examples related to this app.`
+    setChatPrompt(prompt)
+    setChatOpen(true)
+  }
 
 	return (
 		<div className="h-full w-full overflow-auto bg-gradient-to-b from-background to-muted/20">
@@ -254,15 +267,24 @@ export function TutorialView() {
 							{activeLesson.content}
 						</div>
 
-						<div className="mt-8 flex items-center justify-end">
-							<Button onClick={goNext} disabled={index >= total - 1}>
-								Next
-								<ChevronRight className="ml-1 h-4 w-4" />
-							</Button>
-						</div>
+            <div className="mt-6 flex items-center justify-between">
+              <Button variant="secondary" onClick={handleAskAI}>
+                <Sparkles className="h-4 w-4 mr-2" />
+                Ask AI
+              </Button>
+							<div className="flex items-center justify-end">
+								<Button onClick={goNext} disabled={index >= total - 1}>
+									Next
+									<ChevronRight className="ml-1 h-4 w-4" />
+								</Button>
+							</div>
+            </div>
 					</Card>
 				</div>
 			</div>
+
+      {/* Gemini Chat */}
+      <GeminiChat open={chatOpen} onOpenChange={setChatOpen} initialPrompt={chatPrompt} />
 		</div>
 	)
 }

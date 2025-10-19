@@ -67,43 +67,6 @@ export function MarketView() {
   >("1D");
   const [searchSymbol, setSearchSymbol] = useState<string>("");
 
-  /*
-  async function fetchTopStocks(timeframe: "1D" | "1W" | "1M" | "3M") {
-    try {
-      const res = await fetch(
-        `/api/stocks/trending?type=${activeType}&limit=9&timeframe=${activeTimeframe}`
-      );
-      const json = await res.json();
-      if (json.success) {
-        const withCharts = generateStocksData(json.data, timeframe);
-        setStocks(withCharts);
-      }
-    } catch (err) {
-      console.error(err);
-    }
-  }
-
-  /*
-  async function handleFetch(
-    symbol: string[],
-    timeframe: "1D" | "1W" | "1M" | "3M"
-  ) {
-    try {
-      const res = await fetch(
-        `/api/stocks/quote?symbol=${symbol}&interval=${timeframe}`
-      );
-      if (!res.ok) {
-        throw new Error(`HTTP ${res.status}: ${res.statusText}`);
-      }
-      const data = await res.json();
-      setData(data);
-    } catch (err) {
-      console.error("Fetch error:", err);
-      setError(err instanceof Error ? err.message : "Failed to fetch data");
-    }
-  }
-    */
-
   // Simple refresh using mocks for the selected timeframe
   const refreshStocks = () => {
     setStocks(generateMockStocks(9, activeTimeframe));
