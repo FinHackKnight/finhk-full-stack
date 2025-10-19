@@ -26,6 +26,43 @@ interface SimpleChartProps {
 
 type DateRange = "1D" | "5D" | "1M" | "6M" | "1Y" | "5Y";
 
+// Tooltip component for financial terms
+const FinancialTooltip = ({
+  term,
+  description,
+  children,
+}: {
+  term: string;
+  description: string;
+  children: React.ReactNode;
+}) => {
+  const [showTooltip, setShowTooltip] = useState(false);
+
+  return (
+    <div className="relative inline-block">
+      <span
+        className="cursor-help border-b border-dotted border-slate-400 dark:border-slate-500"
+        onMouseEnter={() => setShowTooltip(true)}
+        onMouseLeave={() => setShowTooltip(false)}
+      >
+        {children}
+      </span>
+      {showTooltip && (
+        <div className="absolute bottom-full left-1/2 transform -translate-x-1/2 mb-2 px-4 py-2 bg-slate-900 dark:bg-slate-100 text-white dark:text-slate-900 text-xs rounded-lg shadow-lg z-50 min-w-64 max-w-96">
+          <div className="flex flex-col space-y-1">
+            <div className="font-semibold text-center">{term}</div>
+            <div className="text-xs opacity-90 text-center leading-relaxed">
+              {description}
+            </div>
+          </div>
+          {/* Arrow */}
+          <div className="absolute top-full left-1/2 transform -translate-x-1/2 w-0 h-0 border-l-4 border-r-4 border-t-4 border-transparent border-t-slate-900 dark:border-t-slate-100"></div>
+        </div>
+      )}
+    </div>
+  );
+};
+
 export function SimpleChart({
   symbol,
   stockData,
@@ -33,7 +70,6 @@ export function SimpleChart({
   setActiveTimeframe,
 }: SimpleChartProps) {
   const [selectedRange, setSelectedRange] = useState<DateRange>("1D");
-  const [showTooltip, setShowTooltip] = useState(false);
   const [data, setData] = useState<MarketData[]>([]);
   const [loading, setLoading] = useState(false);
 
@@ -160,6 +196,32 @@ export function SimpleChart({
   }
 */
 
+  // Financial term descriptions
+  const financialTerms = {
+    "Previous Close":
+      "The closing price of the stock from the previous trading day",
+    Open: "The price at which the stock opened for trading today",
+    Bid: "The highest price a buyer is willing to pay for the stock",
+    Ask: "The lowest price a seller is willing to accept for the stock",
+    "Day's Range": "The highest and lowest prices the stock traded at today",
+    "52W Range":
+      "The highest and lowest prices the stock traded at over the past 52 weeks",
+    Volume: "The number of shares traded today",
+    "Avg. Volume":
+      "The average number of shares traded per day over the past 3 months",
+    "Market Cap":
+      "The total value of all company shares (price × shares outstanding)",
+    Beta: "Measures how much the stock price moves relative to the overall market",
+    "PE Ratio":
+      "Price-to-Earnings ratio - stock price divided by earnings per share",
+    EPS: "Earnings Per Share - company's profit divided by number of shares",
+    Earnings: "The date of the next earnings report",
+    Dividend: "Regular payments made to shareholders from company profits",
+    "Ex-Div":
+      "Ex-Dividend date - last day to buy stock and still receive dividend",
+    "1y Target": "Analyst's average price target for the stock in one year",
+  };
+
   return (
     <div className="relative p-4 rounded-xl bg-gradient-to-br from-slate-500/10 to-slate-600/5 border border-slate-500/20 hover:border-slate-500/40 transition-all duration-300 hover:shadow-lg">
       <div className="flex items-center justify-between mb-4">
@@ -207,11 +269,7 @@ export function SimpleChart({
       </div>
 
       {/* Simple Chart */}
-      <div
-        className="relative h-48 bg-slate-50 dark:bg-slate-900/50 rounded-lg p-3 cursor-pointer"
-        onMouseEnter={() => setShowTooltip(true)}
-        onMouseLeave={() => setShowTooltip(false)}
-      >
+      <div className="relative h-48 bg-slate-50 dark:bg-slate-900/50 rounded-lg p-3 cursor-pointer">
         <svg width="100%" height="100%" className="overflow-visible">
           {/* Grid Lines */}
           <defs>
@@ -284,150 +342,6 @@ export function SimpleChart({
         )}
       </div>
 
-      {/* Detailed Table - Shows on Hover */}
-      {showTooltip && (
-        <div className="absolute top-full left-0 right-0 z-50 mt-2 p-4 bg-gradient-to-br from-slate-50 to-slate-100 dark:from-slate-800 dark:to-slate-900 rounded-lg border border-slate-200 dark:border-slate-700 shadow-lg">
-          <h4 className="text-sm font-semibold text-slate-700 dark:text-slate-300 mb-3">
-            Detailed Financial Data
-          </h4>
-          <div className="grid grid-cols-2 gap-4 text-xs">
-            <div className="space-y-2">
-              <div className="flex justify-between items-center py-1 border-b border-slate-200 dark:border-slate-600">
-                <span className="text-slate-600 dark:text-slate-400">
-                  Previous Close:
-                </span>
-                <span className="font-medium text-slate-800 dark:text-slate-200">
-                  ${stockData.previousClose.toFixed(2)}
-                </span>
-              </div>
-              <div className="flex justify-between items-center py-1 border-b border-slate-200 dark:border-slate-600">
-                <span className="text-slate-600 dark:text-slate-400">
-                  Open:
-                </span>
-                <span className="font-medium text-slate-800 dark:text-slate-200">
-                  ${stockData.open.toFixed(2)}
-                </span>
-              </div>
-              <div className="flex justify-between items-center py-1 border-b border-slate-200 dark:border-slate-600">
-                <span className="text-slate-600 dark:text-slate-400">Bid:</span>
-                <span className="font-medium text-slate-800 dark:text-slate-200">
-                  ${(stockData.price - 0.1).toFixed(2)} x 500
-                </span>
-              </div>
-              <div className="flex justify-between items-center py-1 border-b border-slate-200 dark:border-slate-600">
-                <span className="text-slate-600 dark:text-slate-400">Ask:</span>
-                <span className="font-medium text-slate-800 dark:text-slate-200">
-                  ${(stockData.price + 0.1).toFixed(2)} x 1000
-                </span>
-              </div>
-              <div className="flex justify-between items-center py-1 border-b border-slate-200 dark:border-slate-600">
-                <span className="text-slate-600 dark:text-slate-400">
-                  Day's Range:
-                </span>
-                <span className="font-medium text-slate-800 dark:text-slate-200">
-                  ${stockData.low.toFixed(2)} - ${stockData.high.toFixed(2)}
-                </span>
-              </div>
-              <div className="flex justify-between items-center py-1 border-b border-slate-200 dark:border-slate-600">
-                <span className="text-slate-600 dark:text-slate-400">
-                  52W Range:
-                </span>
-                <span className="font-medium text-slate-800 dark:text-slate-200">
-                  ${(stockData.low * 0.3).toFixed(2)} - $
-                  {(stockData.high * 1.1).toFixed(2)}
-                </span>
-              </div>
-              <div className="flex justify-between items-center py-1 border-b border-slate-200 dark:border-slate-600">
-                <span className="text-slate-600 dark:text-slate-400">
-                  Volume:
-                </span>
-                <span className="font-medium text-slate-800 dark:text-slate-200">
-                  {stockData.volume?.toLocaleString() || "N/A"}
-                </span>
-              </div>
-              <div className="flex justify-between items-center py-1">
-                <span className="text-slate-600 dark:text-slate-400">
-                  Avg. Volume:
-                </span>
-                <span className="font-medium text-slate-800 dark:text-slate-200">
-                  {stockData.volume
-                    ? (stockData.volume * 0.6).toLocaleString()
-                    : "N/A"}
-                </span>
-              </div>
-            </div>
-            <div className="space-y-2">
-              <div className="flex justify-between items-center py-1 border-b border-slate-200 dark:border-slate-600">
-                <span className="text-slate-600 dark:text-slate-400">
-                  Market Cap:
-                </span>
-                <span className="font-medium text-slate-800 dark:text-slate-200">
-                  {stockData.marketCap
-                    ? `$${(stockData.marketCap / 1_000_000_000).toFixed(2)}B`
-                    : "N/A"}
-                </span>
-              </div>
-              <div className="flex justify-between items-center py-1 border-b border-slate-200 dark:border-slate-600">
-                <span className="text-slate-600 dark:text-slate-400">
-                  Beta:
-                </span>
-                <span className="font-medium text-slate-800 dark:text-slate-200">
-                  2.25
-                </span>
-              </div>
-              <div className="flex justify-between items-center py-1 border-b border-slate-200 dark:border-slate-600">
-                <span className="text-slate-600 dark:text-slate-400">
-                  PE Ratio:
-                </span>
-                <span className="font-medium text-slate-800 dark:text-slate-200">
-                  {stockData.pe?.toFixed(2) || "N/A"}
-                </span>
-              </div>
-              <div className="flex justify-between items-center py-1 border-b border-slate-200 dark:border-slate-600">
-                <span className="text-slate-600 dark:text-slate-400">EPS:</span>
-                <span className="font-medium text-slate-800 dark:text-slate-200">
-                  {stockData.pe
-                    ? (stockData.price / stockData.pe).toFixed(2)
-                    : "N/A"}
-                </span>
-              </div>
-              <div className="flex justify-between items-center py-1 border-b border-slate-200 dark:border-slate-600">
-                <span className="text-slate-600 dark:text-slate-400">
-                  Earnings:
-                </span>
-                <span className="font-medium text-slate-800 dark:text-slate-200">
-                  Nov 3, 2025
-                </span>
-              </div>
-              <div className="flex justify-between items-center py-1 border-b border-slate-200 dark:border-slate-600">
-                <span className="text-slate-600 dark:text-slate-400">
-                  Dividend:
-                </span>
-                <span className="font-medium text-slate-800 dark:text-slate-200">
-                  --
-                </span>
-              </div>
-              <div className="flex justify-between items-center py-1 border-b border-slate-200 dark:border-slate-600">
-                <span className="text-slate-600 dark:text-slate-400">
-                  Ex-Div:
-                </span>
-                <span className="font-medium text-slate-800 dark:text-slate-200">
-                  --
-                </span>
-              </div>
-              <div className="flex justify-between items-center py-1">
-                <span className="text-slate-600 dark:text-slate-400">
-                  1y Target:
-                </span>
-                <span className="font-medium text-slate-800 dark:text-slate-200">
-                  ${(stockData.price * 0.8).toFixed(2)}
-                </span>
-              </div>
-            </div>
-          </div>
-        </div>
-      )}
-
       {/* Time Labels */}
       <div className="flex justify-between mt-2 text-xs text-muted-foreground">
         {selectedRange === "1D" ? (
@@ -452,6 +366,219 @@ export function SimpleChart({
             <span>End</span>
           </>
         )}
+      </div>
+
+      {/* Detailed Table - Always Show */}
+      <div className="mt-4 p-4 rounded-xl bg-gradient-to-br from-slate-500/10 to-slate-600/5 border border-slate-500/20 shadow-lg">
+        <h4 className="text-sm font-semibold text-slate-600 dark:text-slate-400 mb-3">
+          Detailed Financial Data
+        </h4>
+        <div className="grid grid-cols-2 gap-4 text-xs">
+          <div className="space-y-2">
+            <div className="flex justify-between items-center py-1 border-b border-slate-500/20">
+              <FinancialTooltip
+                term="Previous Close"
+                description={financialTerms["Previous Close"]}
+              >
+                <span className="text-slate-600 dark:text-slate-400">
+                  Previous Close:
+                </span>
+              </FinancialTooltip>
+              <span className="font-medium text-slate-800 dark:text-slate-200">
+                ${stockData.previousClose.toFixed(2)}
+              </span>
+            </div>
+            <div className="flex justify-between items-center py-1 border-b border-slate-500/20">
+              <FinancialTooltip
+                term="Open"
+                description={financialTerms["Open"]}
+              >
+                <span className="text-slate-600 dark:text-slate-400">
+                  Open:
+                </span>
+              </FinancialTooltip>
+              <span className="font-medium text-slate-800 dark:text-slate-200">
+                ${stockData.open.toFixed(2)}
+              </span>
+            </div>
+            <div className="flex justify-between items-center py-1 border-b border-slate-500/20">
+              <FinancialTooltip term="Bid" description={financialTerms["Bid"]}>
+                <span className="text-slate-600 dark:text-slate-400">Bid:</span>
+              </FinancialTooltip>
+              <span className="font-medium text-slate-800 dark:text-slate-200">
+                ${(stockData.price - 0.1).toFixed(2)} x 500
+              </span>
+            </div>
+            <div className="flex justify-between items-center py-1 border-b border-slate-500/20">
+              <FinancialTooltip term="Ask" description={financialTerms["Ask"]}>
+                <span className="text-slate-600 dark:text-slate-400">Ask:</span>
+              </FinancialTooltip>
+              <span className="font-medium text-slate-800 dark:text-slate-200">
+                ${(stockData.price + 0.1).toFixed(2)} x 1000
+              </span>
+            </div>
+            <div className="flex justify-between items-center py-1 border-b border-slate-500/20">
+              <FinancialTooltip
+                term="Day's Range"
+                description={financialTerms["Day's Range"]}
+              >
+                <span className="text-slate-600 dark:text-slate-400">
+                  Day's Range:
+                </span>
+              </FinancialTooltip>
+              <span className="font-medium text-slate-800 dark:text-slate-200">
+                ${stockData.low.toFixed(2)} - ${stockData.high.toFixed(2)}
+              </span>
+            </div>
+            <div className="flex justify-between items-center py-1 border-b border-slate-500/20">
+              <FinancialTooltip
+                term="52W Range"
+                description={financialTerms["52W Range"]}
+              >
+                <span className="text-slate-600 dark:text-slate-400">
+                  52W Range:
+                </span>
+              </FinancialTooltip>
+              <span className="font-medium text-slate-800 dark:text-slate-200">
+                ${(stockData.low * 0.3).toFixed(2)} - $
+                {(stockData.high * 1.1).toFixed(2)}
+              </span>
+            </div>
+            <div className="flex justify-between items-center py-1 border-b border-slate-500/20">
+              <FinancialTooltip
+                term="Volume"
+                description={financialTerms["Volume"]}
+              >
+                <span className="text-slate-600 dark:text-slate-400">
+                  Volume:
+                </span>
+              </FinancialTooltip>
+              <span className="font-medium text-slate-800 dark:text-slate-200">
+                {stockData.volume?.toLocaleString() || "N/A"}
+              </span>
+            </div>
+            <div className="flex justify-between items-center py-1">
+              <FinancialTooltip
+                term="Avg. Volume"
+                description={financialTerms["Avg. Volume"]}
+              >
+                <span className="text-slate-600 dark:text-slate-400">
+                  Avg. Volume:
+                </span>
+              </FinancialTooltip>
+              <span className="font-medium text-slate-800 dark:text-slate-200">
+                {stockData.volume
+                  ? (stockData.volume * 0.6).toLocaleString()
+                  : "N/A"}
+              </span>
+            </div>
+          </div>
+          <div className="space-y-2">
+            <div className="flex justify-between items-center py-1 border-b border-slate-500/20">
+              <FinancialTooltip
+                term="Market Cap"
+                description={financialTerms["Market Cap"]}
+              >
+                <span className="text-slate-600 dark:text-slate-400">
+                  Market Cap:
+                </span>
+              </FinancialTooltip>
+              <span className="font-medium text-slate-800 dark:text-slate-200">
+                {stockData.marketCap
+                  ? `$${(stockData.marketCap / 1_000_000_000).toFixed(2)}B`
+                  : "N/A"}
+              </span>
+            </div>
+            <div className="flex justify-between items-center py-1 border-b border-slate-500/20">
+              <FinancialTooltip
+                term="Beta"
+                description={financialTerms["Beta"]}
+              >
+                <span className="text-slate-600 dark:text-slate-400">
+                  Beta:
+                </span>
+              </FinancialTooltip>
+              <span className="font-medium text-slate-800 dark:text-slate-200">
+                2.25
+              </span>
+            </div>
+            <div className="flex justify-between items-center py-1 border-b border-slate-500/20">
+              <FinancialTooltip
+                term="PE Ratio"
+                description={financialTerms["PE Ratio"]}
+              >
+                <span className="text-slate-600 dark:text-slate-400">
+                  PE Ratio:
+                </span>
+              </FinancialTooltip>
+              <span className="font-medium text-slate-800 dark:text-slate-200">
+                {stockData.pe?.toFixed(2) || "N/A"}
+              </span>
+            </div>
+            <div className="flex justify-between items-center py-1 border-b border-slate-500/20">
+              <FinancialTooltip term="EPS" description={financialTerms["EPS"]}>
+                <span className="text-slate-600 dark:text-slate-400">EPS:</span>
+              </FinancialTooltip>
+              <span className="font-medium text-slate-800 dark:text-slate-200">
+                {stockData.pe
+                  ? (stockData.price / stockData.pe).toFixed(2)
+                  : "N/A"}
+              </span>
+            </div>
+            <div className="flex justify-between items-center py-1 border-b border-slate-500/20">
+              <FinancialTooltip
+                term="Earnings"
+                description={financialTerms["Earnings"]}
+              >
+                <span className="text-slate-600 dark:text-slate-400">
+                  Earnings:
+                </span>
+              </FinancialTooltip>
+              <span className="font-medium text-slate-800 dark:text-slate-200">
+                Nov 3, 2025
+              </span>
+            </div>
+            <div className="flex justify-between items-center py-1 border-b border-slate-500/20">
+              <FinancialTooltip
+                term="Dividend"
+                description={financialTerms["Dividend"]}
+              >
+                <span className="text-slate-600 dark:text-slate-400">
+                  Dividend:
+                </span>
+              </FinancialTooltip>
+              <span className="font-medium text-slate-800 dark:text-slate-200">
+                --
+              </span>
+            </div>
+            <div className="flex justify-between items-center py-1 border-b border-slate-500/20">
+              <FinancialTooltip
+                term="Ex-Div"
+                description={financialTerms["Ex-Div"]}
+              >
+                <span className="text-slate-600 dark:text-slate-400">
+                  Ex-Div:
+                </span>
+              </FinancialTooltip>
+              <span className="font-medium text-slate-800 dark:text-slate-200">
+                --
+              </span>
+            </div>
+            <div className="flex justify-between items-center py-1">
+              <FinancialTooltip
+                term="1y Target"
+                description={financialTerms["1y Target"]}
+              >
+                <span className="text-slate-600 dark:text-slate-400">
+                  1y Target:
+                </span>
+              </FinancialTooltip>
+              <span className="font-medium text-slate-800 dark:text-slate-200">
+                ${(stockData.price * 0.8).toFixed(2)}
+              </span>
+            </div>
+          </div>
+        </div>
       </div>
 
       {/* Key Stats */}
