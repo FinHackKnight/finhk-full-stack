@@ -1,28 +1,32 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { generateContent } from '@/lib/gemini';
+import { generateContent, generateContentFromMessages } from '@/lib/gemini';
 
 export async function POST(request: NextRequest) {
   try {
-    const { prompt } = await request.json();
+    const body = await request.json();
+    const prompt: string | undefined = body?.prompt;
+    const messages: Array<{ role: 'user' | 'assistant' | 'model'; content: string }> | undefined = body?.messages;
 
-    if (!prompt) {
+    if (!prompt && (!messages || messages.length === 0)) {
       return NextResponse.json(
-        { error: 'Prompt is required' },
+        { error: 'Prompt or messages are required' },
         { status: 400 }
       );
     }
 
-    const response = await generateContent(prompt);
+    let text = '';
+    if (messages && messages.length) {
+      text = await generateContentFromMessages(messages);
+    } else if (prompt) {
+      text = await generateContent(prompt);
+    }
 
-    return NextResponse.json({
-      success: true,
-      response: response
-    });
-
-  } catch (error) {
+    return NextResponse.json({ success: true, response: text, sources: [] });
+  } catch (error: any) {
     console.error('API Error:', error);
+    const msg = error?.message || 'Failed to generate content';
     return NextResponse.json(
-      { error: 'Failed to generate content' },
+      { error: msg },
       { status: 500 }
     );
   }
