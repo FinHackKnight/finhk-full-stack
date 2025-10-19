@@ -6,11 +6,12 @@ import { NewsTicker } from "@/components/news-ticker"
 import { MapView } from "@/components/map-view"
 import { MarketView } from "@/components/market-view"
 import { DashboardView } from "@/components/dashboard-view"
+import { TutorialView } from "@/components/tutorial-view"
 
-type ViewType = "map" | "market" | "dashboard"
+type ViewType = "map" | "market" | "news" | "tutorials"
 
 export default function Home() {
-  const [currentView, setCurrentView] = useState<ViewType>("map")
+  const [currentView, setCurrentView] = useState<ViewType>("news")
 
   return (
     <div className="h-screen flex flex-col overflow-hidden">
@@ -20,7 +21,8 @@ export default function Home() {
       <main className="flex-1 overflow-hidden">
         {currentView === "map" && <MapView />}
         {currentView === "market" && <MarketView />}
-        {currentView === "dashboard" && <DashboardView />}
+        {currentView === "news" && <DashboardView />}
+        {currentView === "tutorials" && <TutorialView />}
       </main>
     </div>
   )

@@ -272,7 +272,7 @@ export function Globe3D({
 }: Globe3DProps) {
   return (
     <div className="w-full h-full">
-      <Canvas camera={{ position: [0, 0, 5], fov: 65 }}>
+      <Canvas camera={{ position: [0, 0, 3], fov: 45 }}>
         <ambientLight intensity={0.3} />
         <directionalLight
           position={[5, 3, 5]}
@@ -289,7 +289,7 @@ export function Globe3D({
         <OrbitControls
           enableZoom={true}
           enablePan={false}
-          minDistance={3}
+          minDistance={2}
           maxDistance={10}
           autoRotate={!hoveredEventId}
           autoRotateSpeed={0.5}

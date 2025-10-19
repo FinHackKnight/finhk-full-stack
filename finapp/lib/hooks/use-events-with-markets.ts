@@ -15,8 +15,8 @@ function mapCategoryToType(category?: string): EventWithMarkets["type"] {
 }
 
 function impactLevelFromScore(score: number): EventWithMarkets["impactLevel"] {
-  if (score >= 8) return "high";
-  if (score >= 4) return "medium";
+  if (score >= 70) return "high";
+  if (score >= 40) return "medium";
   return "low";
 }
 
@@ -33,8 +33,7 @@ function inferCountry(e: ApiEvent): string {
 }
 
 function toEventWithMarkets(e: ApiEvent, index: number): EventWithMarkets {
-  // impact_score is already on a 1-10 scale from the API
-  const impact10 = Math.max(1, Math.min(10, Math.round(e.impact_score || 1)));
+  const impact10 = Math.max(1, Math.min(10, Math.round((e.impact_score || 1) / 10)));
   const impactLevel = impactLevelFromScore(e.impact_score || 1);
 
   return {

@@ -1,6 +1,6 @@
 "use client"
 
-import { X, TrendingUp, TrendingDown, MapPin, Calendar, ExternalLink } from "lucide-react"
+import { X, TrendingUp, TrendingDown } from "lucide-react"
 import type { EventWithMarkets } from "@/lib/mock-data"
 import { Button } from "@/components/ui/button"
 
@@ -8,47 +8,6 @@ interface EventDetailModalProps {
   event: EventWithMarkets
   onClose: () => void
 }
-
-// Helper to get country name from code
-const getCountryName = (code: string): string => {
-  const countryNames: Record<string, string> = {
-    'US': 'United States',
-    'GB': 'United Kingdom',
-    'CA': 'Canada',
-    'FR': 'France',
-    'DE': 'Germany',
-    'JP': 'Japan',
-    'CN': 'China',
-    'IN': 'India',
-    'KR': 'South Korea',
-    'AU': 'Australia',
-    'BR': 'Brazil',
-    'MX': 'Mexico',
-    'SG': 'Singapore',
-    'HK': 'Hong Kong',
-    'IT': 'Italy',
-    'ES': 'Spain',
-    'NL': 'Netherlands',
-    'SE': 'Sweden',
-    'CH': 'Switzerland',
-    'NO': 'Norway',
-  };
-  return countryNames[code.toUpperCase()] || code || 'Unknown';
-};
-
-// Helper to format date without time
-const formatDate = (dateString: string): string => {
-  try {
-    const date = new Date(dateString);
-    return date.toLocaleDateString('en-US', { 
-      year: 'numeric', 
-      month: 'long', 
-      day: 'numeric' 
-    });
-  } catch {
-    return dateString;
-  }
-};
 
 export function EventDetailModal({ event, onClose }: EventDetailModalProps) {
   const impactColor =
@@ -58,11 +17,8 @@ export function EventDetailModal({ event, onClose }: EventDetailModalProps) {
         ? "text-amber-400"
         : "text-emerald-400"
 
-  const countryDisplay = getCountryName(event.location.country);
-  const dateDisplay = formatDate(event.date);
-
   return (
-    <div className="absolute inset-y-0 left-0 right-2 bg-background/95 backdrop-blur-sm z-10 animate-in fade-in-0 slide-in-from-left-5 duration-300">
+    <div className="absolute inset-0 bg-background/95 backdrop-blur-sm z-50 animate-in fade-in-0 slide-in-from-left-5 duration-300">
       <div className="h-full flex flex-col">
         {/* Header */}
         <div className="flex items-center justify-between p-4 border-b border-border/50 shrink-0">
@@ -78,68 +34,26 @@ export function EventDetailModal({ event, onClose }: EventDetailModalProps) {
             {/* Headline */}
             <div className="space-y-2">
               <h3 className="text-xl font-bold leading-tight">{event.title}</h3>
-              <div className="flex items-center gap-3 text-sm text-muted-foreground">
-                <div className="flex items-center gap-1">
-                  <MapPin className="w-3.5 h-3.5" />
-                  <span>{countryDisplay}</span>
-                </div>
+              <div className="flex items-center gap-2 text-sm text-muted-foreground">
+                <span>{event.location.country}</span>
                 <span>•</span>
-                <div className="flex items-center gap-1">
-                  <Calendar className="w-3.5 h-3.5" />
-                  <span>{dateDisplay}</span>
-                </div>
+                <span>{new Date(event.date).toLocaleDateString()}</span>
               </div>
             </div>
 
-            {/* Event Picture */}
-            {event.imageUrl ? (
-              <div className="aspect-video rounded-lg overflow-hidden border border-border/50">
-                <img 
-                  src={event.imageUrl} 
-                  alt={event.title}
-                  className="w-full h-full object-cover"
-                  onError={(e) => {
-                    // Fallback to placeholder if image fails to load
-                    e.currentTarget.style.display = 'none';
-                    e.currentTarget.parentElement!.innerHTML = `
-                      <div class="w-full h-full bg-muted/30 flex items-center justify-center">
-                        <div class="text-center text-muted-foreground">
-                          <div class="text-4xl mb-2">🌍</div>
-                          <p class="text-sm">Event Image</p>
-                        </div>
-                      </div>
-                    `;
-                  }}
-                />
+            {/* Event Picture Placeholder */}
+            <div className="aspect-video rounded-lg bg-muted/30 border border-border/50 flex items-center justify-center">
+              <div className="text-center text-muted-foreground">
+                <div className="text-4xl mb-2">🌍</div>
+                <p className="text-sm">Event Image</p>
               </div>
-            ) : (
-              <div className="aspect-video rounded-lg bg-muted/30 border border-border/50 flex items-center justify-center">
-                <div className="text-center text-muted-foreground">
-                  <div className="text-4xl mb-2">🌍</div>
-                  <p className="text-sm">Event Image</p>
-                </div>
-              </div>
-            )}
+            </div>
 
             {/* Event Description */}
             <div className="space-y-2">
               <h4 className="text-sm font-semibold text-muted-foreground uppercase tracking-wide">Event Description</h4>
               <p className="text-sm leading-relaxed text-foreground/90">{event.detailedDescription}</p>
             </div>
-
-            {/* Read Article Button */}
-            {event.articles && event.articles.length > 0 && event.articles[0].url && (
-              <div>
-                <Button
-                  onClick={() => window.open(event.articles[0].url, '_blank', 'noopener,noreferrer')}
-                  className="w-full bg-primary hover:bg-primary/90 text-primary-foreground"
-                  size="lg"
-                >
-                  <ExternalLink className="w-4 h-4 mr-2" />
-                  Read Full Article
-                </Button>
-              </div>
-            )}
 
             {/* Impact Scale */}
             <div className="space-y-3">
