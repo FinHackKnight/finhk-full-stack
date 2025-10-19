@@ -6,6 +6,9 @@ import { Button } from "@/components/ui/button"
 import { Badge } from "@/components/ui/badge"
 import { Card } from "@/components/ui/card"
 import { Loader2 } from "lucide-react"
+import GeminiChat from "@/components/gemini-chat"
+
+const ARTICLE_MIME = 'application/vnd.finhk.article+json'
 
 interface Article {
   uuid: string
@@ -24,6 +27,8 @@ export function DashboardView() {
   const [error, setError] = useState<string | null>(null)
   const [query, setQuery] = useState("")
   const [industry, setIndustry] = useState<string>("All")
+  const [chatOpen, setChatOpen] = useState(false)
+  const [seedPrompt, setSeedPrompt] = useState<string | undefined>(undefined)
 
   useEffect(() => {
     let cancelled = false
@@ -68,6 +73,22 @@ export function DashboardView() {
     })
   }, [articles, industry, query])
 
+  const handleSummarize = (article?: Article) => {
+    const prompt = article
+      ? `Summarize the following news article in 3-5 bullet points, include key entities and implications:\nTitle: ${article.title}\nURL: ${article.url}`
+      : `Summarize the latest market news in concise bullets.`
+    setSeedPrompt(prompt)
+    setChatOpen(true)
+  }
+
+  const onDragStartArticle = (e: React.DragEvent, a: Article) => {
+    // set custom JSON data
+    e.dataTransfer.setData(ARTICLE_MIME, JSON.stringify({ title: a.title, url: a.url }))
+    // also set uri-list and plain text for broader compatibility
+    e.dataTransfer.setData('text/uri-list', a.url)
+    e.dataTransfer.setData('text/plain', `Title: ${a.title}\nURL: ${a.url}`)
+  }
+
   return (
     <div className="h-full w-full overflow-auto bg-gradient-to-b from-background to-muted/20">
       <div className="container mx-auto px-6 py-6 space-y-6">
@@ -104,7 +125,7 @@ export function DashboardView() {
           </div>
 
           <div className="sm:ml-auto">
-            <Button variant="default" disabled title="Coming soon">
+            <Button variant="default" onClick={() => handleSummarize()}>
               Summarize article
             </Button>
           </div>
@@ -124,7 +145,15 @@ export function DashboardView() {
         {/* Articles list */}
         <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-6">
           {filtered.map((a) => (
-            <a key={a.uuid} href={a.url} target="_blank" rel="noreferrer" className="group">
+            <a
+              key={a.uuid}
+              href={a.url}
+              target="_blank"
+              rel="noreferrer"
+              className="group"
+              draggable
+              onDragStart={(e) => onDragStartArticle(e, a)}
+            >
               <Card className="overflow-hidden transition-shadow group-hover:shadow-md">
                 <div className="aspect-[16/9] bg-muted overflow-hidden">
                   {/* eslint-disable-next-line @next/next/no-img-element */}
@@ -142,12 +171,17 @@ export function DashboardView() {
                   <h3 className="font-semibold leading-snug line-clamp-2">
                     {a.title}
                   </h3>
-                  <div className="text-xs text-muted-foreground">
-                    <span>By {a.source || "Unknown"}</span>
-                    <span className="mx-1">•</span>
-                    <time dateTime={a.published_at}>
-                      {new Date(a.published_at).toLocaleString()}
-                    </time>
+                  <div className="flex items-center justify-between">
+                    <div className="text-xs text-muted-foreground">
+                      <span>By {a.source || "Unknown"}</span>
+                      <span className="mx-1">•</span>
+                      <time dateTime={a.published_at}>
+                        {new Date(a.published_at).toLocaleString()}
+                      </time>
+                    </div>
+                    <Button size="sm" variant="outline" onClick={(e) => { e.preventDefault(); handleSummarize(a); }}>
+                      Summarize
+                    </Button>
                   </div>
                 </div>
               </Card>
@@ -159,6 +193,9 @@ export function DashboardView() {
           <div className="text-sm text-muted-foreground">No articles found.</div>
         )}
       </div>
+
+      {/* Chat sidebar */}
+      <GeminiChat open={chatOpen} onOpenChange={setChatOpen} initialPrompt={seedPrompt} />
     </div>
   )
 }

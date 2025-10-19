@@ -6,7 +6,7 @@ interface UseGeminiReturn {
   response: string | null;
   loading: boolean;
   error: string | null;
-  generateResponse: (prompt: string) => Promise<void>;
+  generateResponse: (prompt: string) => Promise<string>;
   clearResponse: () => void;
 }
 
@@ -17,8 +17,9 @@ export function useGemini(): UseGeminiReturn {
 
   const generateResponse = async (prompt: string) => {
     if (!prompt.trim()) {
-      setError('Prompt cannot be empty');
-      return;
+      const msg = 'Prompt cannot be empty';
+      setError(msg);
+      return Promise.reject(new Error(msg));
     }
 
     setLoading(true);
@@ -40,9 +41,13 @@ export function useGemini(): UseGeminiReturn {
         throw new Error(data.error || 'Failed to generate response');
       }
 
-      setResponse(data.response);
+      const out = String(data.response ?? '');
+      setResponse(out);
+      return out;
     } catch (err) {
-      setError(err instanceof Error ? err.message : 'An unknown error occurred');
+      const message = err instanceof Error ? err.message : 'An unknown error occurred';
+      setError(message);
+      throw err instanceof Error ? err : new Error(message);
     } finally {
       setLoading(false);
     }
